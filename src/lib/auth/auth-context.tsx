@@ -96,6 +96,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Listen for switch-provider postMessage from PDS OAuth UI iframe
   useEffect(() => {
     const handleSwitchProvider = async (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
       if (event.data?.type !== "switch-provider") return;
       const input = event.data.input;
       if (!input || typeof input !== "string") return;
@@ -113,26 +114,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           trimmedInput.startsWith("https://")
         ) {
           await client.signIn(trimmedInput, {
-            scope: "atproto transition:generic identity:handle account:email",
+            scope: "atproto identity:handle account:email",
           });
           return;
         }
 
         if (trimmedInput.startsWith("did:")) {
           await client.signIn(trimmedInput, {
-            scope: "atproto transition:generic identity:handle account:email",
+            scope: "atproto identity:handle account:email",
           });
           return;
         }
 
         try {
           await client.signIn(trimmedInput, {
-            scope: "atproto transition:generic identity:handle account:email",
+            scope: "atproto identity:handle account:email",
           });
         } catch (handleErr) {
           try {
             await client.signIn("https://" + trimmedInput, {
-              scope: "atproto transition:generic identity:handle account:email",
+              scope: "atproto identity:handle account:email",
             });
           } catch {
             throw handleErr;
@@ -177,7 +178,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const client = getOAuthClient();
       const prompt = authMode === "sign-up" ? "create" : "login";
       const url = await client.authorize(PDS_URL, {
-        scope: "atproto transition:generic identity:handle account:email",
+        scope: "atproto identity:handle account:email",
         display: "page",
         prompt,
       });
@@ -206,26 +207,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         trimmedHandle.startsWith("https://")
       ) {
         await client.signIn(trimmedHandle, {
-          scope: "atproto transition:generic identity:handle account:email",
+          scope: "atproto identity:handle account:email",
         });
         return;
       }
 
       if (trimmedHandle.startsWith("did:")) {
         await client.signIn(trimmedHandle, {
-          scope: "atproto transition:generic identity:handle account:email",
+          scope: "atproto identity:handle account:email",
         });
         return;
       }
 
       try {
         await client.signIn(trimmedHandle, {
-          scope: "atproto transition:generic identity:handle account:email",
+          scope: "atproto identity:handle account:email",
         });
       } catch (handleErr) {
         try {
           await client.signIn("https://" + trimmedHandle, {
-            scope: "atproto transition:generic identity:handle account:email",
+            scope: "atproto identity:handle account:email",
           });
         } catch {
           throw handleErr;

@@ -106,7 +106,7 @@ export default function ProjectPage() {
 
   return (
     <>
-      <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="max-w-4xl mx-auto px-4 py-8 pt-[56px]">
         <ProjectView
           project={project.value}
           rkey={rkey}

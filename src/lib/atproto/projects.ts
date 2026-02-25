@@ -56,13 +56,26 @@ export async function getProject(
   }
 }
 
+function generateTid(): string {
+  // TID = 13 chars from base32sortable: 234567abcdefghijklmnopqrstuvwxyz
+  const CHARS = '234567abcdefghijklmnopqrstuvwxyz';
+  // Use microsecond timestamp encoded in base-32
+  const now = Date.now() * 1000; // microseconds (safe up to ~2255 in JS number precision)
+  let tid = '';
+  let remaining = now;
+  for (let i = 0; i < 13; i++) {
+    tid = CHARS[remaining % 32] + tid;
+    remaining = Math.floor(remaining / 32);
+  }
+  return tid;
+}
+
 export async function createProject(
   agent: Agent,
   did: string,
   record: Omit<ProjectRecord, "$type">,
 ): Promise<{ uri: string; cid: string; rkey: string }> {
-  const rkey =
-    Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  const rkey = generateTid();
 
   const response = await agent.com.atproto.repo.createRecord({
     repo: did,

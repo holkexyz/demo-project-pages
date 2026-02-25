@@ -118,7 +118,7 @@ export interface LeafletIframeBlock {
 
 export interface LeafletWebsiteBlock {
   $type: "pub.leaflet.blocks.website";
-  url: string;
+  src: string;
   title?: string;
   description?: string;
 }

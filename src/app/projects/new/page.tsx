@@ -70,7 +70,9 @@ function CreateProjectContent() {
 export default function CreateProjectPage() {
   return (
     <AuthGuard>
-      <CreateProjectContent />
+      <div className="pt-[56px]">
+        <CreateProjectContent />
+      </div>
     </AuthGuard>
   );
 }

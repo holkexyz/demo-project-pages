@@ -309,7 +309,36 @@ interface TextSegment {
 }
 
 /**
+ * Convert a single LeafletFacetFeature to a TipTap MarkSpec.
+ */
+function featureToMark(feature: LeafletFacetFeature): MarkSpec {
+  switch (feature.$type) {
+    case "pub.leaflet.richtext.facet#bold":
+      return { type: "bold" };
+    case "pub.leaflet.richtext.facet#italic":
+      return { type: "italic" };
+    case "pub.leaflet.richtext.facet#code":
+      return { type: "code" };
+    case "pub.leaflet.richtext.facet#strikethrough":
+      return { type: "strike" };
+    case "pub.leaflet.richtext.facet#underline":
+      return { type: "underline" };
+    case "pub.leaflet.richtext.facet#link":
+      return {
+        type: "link",
+        attrs: { href: feature.uri, target: "_blank" },
+      };
+    default:
+      return { type: "bold" }; // fallback
+  }
+}
+
+/**
  * Reconstruct TipTap inline content from plaintext + byte-indexed facets.
+ *
+ * Handles overlapping facets correctly by using a sweep-line over all unique
+ * byte boundaries, collecting the union of marks active in each sub-segment.
+ * No text is ever lost regardless of how facets overlap.
  */
 function facetsToInlineContent(
   plaintext: string,
@@ -323,68 +352,50 @@ function facetsToInlineContent(
   const bytes = encoder.encode(plaintext);
   const totalBytes = bytes.length;
 
-  // Sort facets by byteStart
-  const sorted = [...facets].sort(
-    (a, b) => a.index.byteStart - b.index.byteStart
-  );
+  // Collect all unique boundary points, clamped to [0, totalBytes]
+  const boundarySet = new Set<number>([0, totalBytes]);
+  for (const facet of facets) {
+    const s = Math.max(0, Math.min(facet.index.byteStart, totalBytes));
+    const e = Math.max(0, Math.min(facet.index.byteEnd, totalBytes));
+    boundarySet.add(s);
+    boundarySet.add(e);
+  }
+  const boundaries = Array.from(boundarySet).sort((a, b) => a - b);
 
-  // Build non-overlapping segments with their marks
+  // For each sub-segment between consecutive boundaries, collect active marks
   const segments: TextSegment[] = [];
-  let cursor = 0; // byte cursor
+  for (let i = 0; i < boundaries.length - 1; i++) {
+    const segStart = boundaries[i];
+    const segEnd = boundaries[i + 1];
+    if (segStart >= segEnd) continue;
 
-  for (const facet of sorted) {
-    const { byteStart, byteEnd } = facet.index;
+    const segBytes = bytes.slice(segStart, segEnd);
+    const segText = decoder.decode(segBytes);
+    if (!segText) continue;
 
-    // Gap before this facet
-    if (cursor < byteStart) {
-      const gapBytes = bytes.slice(cursor, byteStart);
-      const gapText = decoder.decode(gapBytes);
-      if (gapText) {
-        segments.push({ text: gapText, marks: [] });
+    // Collect marks from all facets that cover this sub-segment
+    const marks: MarkSpec[] = [];
+    const seenMarkKeys = new Set<string>();
+    for (const facet of facets) {
+      const fs = Math.max(0, Math.min(facet.index.byteStart, totalBytes));
+      const fe = Math.max(0, Math.min(facet.index.byteEnd, totalBytes));
+      if (fs <= segStart && fe >= segEnd) {
+        for (const feature of facet.features) {
+          const mark = featureToMark(feature);
+          // Deduplicate marks by type (+ href for links)
+          const key =
+            mark.type === "link"
+              ? `link:${(mark.attrs as { href: string } | undefined)?.href ?? ""}`
+              : mark.type;
+          if (!seenMarkKeys.has(key)) {
+            seenMarkKeys.add(key);
+            marks.push(mark);
+          }
+        }
       }
     }
 
-    // The faceted segment
-    const facetBytes = bytes.slice(
-      Math.max(cursor, byteStart),
-      Math.min(byteEnd, totalBytes)
-    );
-    const facetText = decoder.decode(facetBytes);
-    if (facetText) {
-      const marks: MarkSpec[] = facet.features.map((feature) => {
-        switch (feature.$type) {
-          case "pub.leaflet.richtext.facet#bold":
-            return { type: "bold" };
-          case "pub.leaflet.richtext.facet#italic":
-            return { type: "italic" };
-          case "pub.leaflet.richtext.facet#code":
-            return { type: "code" };
-          case "pub.leaflet.richtext.facet#strikethrough":
-            return { type: "strike" };
-          case "pub.leaflet.richtext.facet#underline":
-            return { type: "underline" };
-          case "pub.leaflet.richtext.facet#link":
-            return {
-              type: "link",
-              attrs: { href: feature.uri, target: "_blank" },
-            };
-          default:
-            return { type: "bold" }; // fallback
-        }
-      });
-      segments.push({ text: facetText, marks });
-    }
-
-    cursor = Math.max(cursor, byteEnd);
-  }
-
-  // Remaining text after last facet
-  if (cursor < totalBytes) {
-    const remainingBytes = bytes.slice(cursor);
-    const remainingText = decoder.decode(remainingBytes);
-    if (remainingText) {
-      segments.push({ text: remainingText, marks: [] });
-    }
+    segments.push({ text: segText, marks });
   }
 
   return segments.map((seg) => ({
@@ -559,11 +570,11 @@ export function leafletToTiptap(doc: LeafletLinearDocument): JSONContent {
           content: [
             {
               type: "text",
-              text: block.title ?? block.url,
+              text: block.title ?? block.src,
               marks: [
                 {
                   type: "link",
-                  attrs: { href: block.url, target: "_blank" },
+                  attrs: { href: block.src, target: "_blank" },
                 },
               ],
             },

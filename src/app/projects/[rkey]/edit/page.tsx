@@ -187,7 +187,9 @@ function EditProjectContent() {
 export default function EditProjectPage() {
   return (
     <AuthGuard>
-      <EditProjectContent />
+      <div className="pt-[56px]">
+        <EditProjectContent />
+      </div>
     </AuthGuard>
   );
 }

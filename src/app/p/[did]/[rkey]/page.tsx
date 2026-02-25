@@ -122,7 +122,7 @@ export default function PublicProjectPage() {
   const isOwner = !auth.isLoading && !!auth.did && auth.did === did;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
+    <div className="max-w-4xl mx-auto px-4 py-8 pt-[56px]">
       {/* Author header */}
       <div className="flex items-center gap-3 mb-8 pb-6 border-b border-gray-200">
         <Avatar
@@ -161,7 +161,7 @@ export default function PublicProjectPage() {
         rkey={rkey}
         pdsUrl={pdsUrl}
         did={did}
-        isOwner={false}
+        isOwner={isOwner}
       />
     </div>
   );

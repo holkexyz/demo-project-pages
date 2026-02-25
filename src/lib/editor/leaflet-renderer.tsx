@@ -355,7 +355,7 @@ function renderBlock(
           className="my-4 border border-gray-200 rounded-lg overflow-hidden hover:border-accent/40 transition-colors duration-150"
         >
           <a
-            href={block.url}
+            href={block.src}
             target="_blank"
             rel="noopener noreferrer"
             className="block p-4 no-underline"
@@ -370,7 +370,7 @@ function renderBlock(
                 {block.description}
               </p>
             )}
-            <p className="text-accent text-xs font-mono truncate">{block.url}</p>
+            <p className="text-accent text-xs font-mono truncate">{block.src}</p>
           </a>
         </div>
       );
