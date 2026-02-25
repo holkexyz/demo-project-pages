@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     redirect_uris: [`${origin}/oauth/callback`],
     response_types: ["code"],
     grant_types: ["authorization_code", "refresh_token"],
-    scope: "atproto identity:handle account:email",
+    scope: "atproto",
     token_endpoint_auth_method: "none",
     application_type: "web",
     dpop_bound_access_tokens: true,

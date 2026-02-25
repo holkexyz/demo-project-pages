@@ -143,26 +143,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           trimmedInput.startsWith("https://")
         ) {
           await client.signIn(trimmedInput, {
-            scope: "atproto identity:handle account:email",
+            scope: "atproto",
           });
           return;
         }
 
         if (trimmedInput.startsWith("did:")) {
           await client.signIn(trimmedInput, {
-            scope: "atproto identity:handle account:email",
+            scope: "atproto",
           });
           return;
         }
 
         try {
           await client.signIn(trimmedInput, {
-            scope: "atproto identity:handle account:email",
+            scope: "atproto",
           });
         } catch (handleErr) {
           try {
             await client.signIn("https://" + trimmedInput, {
-              scope: "atproto identity:handle account:email",
+              scope: "atproto",
             });
           } catch {
             throw handleErr;
@@ -207,7 +207,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const client = getOAuthClient();
       const prompt = authMode === "sign-up" ? "create" : "login";
       const url = await client.authorize(PDS_URL, {
-        scope: "atproto identity:handle account:email",
+        scope: "atproto",
         display: "page",
         prompt,
       });
@@ -236,26 +236,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         trimmedHandle.startsWith("https://")
       ) {
         await client.signIn(trimmedHandle, {
-          scope: "atproto identity:handle account:email",
+          scope: "atproto",
         });
         return;
       }
 
       if (trimmedHandle.startsWith("did:")) {
         await client.signIn(trimmedHandle, {
-          scope: "atproto identity:handle account:email",
+          scope: "atproto",
         });
         return;
       }
 
       try {
         await client.signIn(trimmedHandle, {
-          scope: "atproto identity:handle account:email",
+          scope: "atproto",
         });
       } catch (handleErr) {
         try {
           await client.signIn("https://" + trimmedHandle, {
-            scope: "atproto identity:handle account:email",
+            scope: "atproto",
           });
         } catch {
           throw handleErr;
