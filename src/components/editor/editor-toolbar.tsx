@@ -23,6 +23,7 @@ import {
 interface EditorToolbarProps {
   editor: Editor | null;
   onImageUpload: (file: File) => Promise<{ blobRef: BlobRef; url: string }>;
+  isUploading?: boolean;
 }
 
 interface ToolbarButtonProps {
@@ -68,9 +69,11 @@ function Divider() {
   );
 }
 
-export function EditorToolbar({ editor, onImageUpload }: EditorToolbarProps) {
+export function EditorToolbar({ editor, onImageUpload, isUploading: isExternalUploading }: EditorToolbarProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isToolbarUploading, setIsToolbarUploading] = useState(false);
+  const isUploading = isToolbarUploading || (isExternalUploading ?? false);
 
   if (!editor) return null;
 
@@ -105,6 +108,7 @@ export function EditorToolbar({ editor, onImageUpload }: EditorToolbarProps) {
     // Reset input so same file can be re-selected
     e.target.value = "";
     setUploadError(null);
+    setIsToolbarUploading(true);
     try {
       const { url, blobRef } = await onImageUpload(file);
       editor
@@ -120,6 +124,8 @@ export function EditorToolbar({ editor, onImageUpload }: EditorToolbarProps) {
       const message = err instanceof Error ? err.message : "Image upload failed";
       setUploadError(message);
       console.error("Image upload failed", err);
+    } finally {
+      setIsToolbarUploading(false);
     }
   };
 
@@ -224,8 +230,16 @@ export function EditorToolbar({ editor, onImageUpload }: EditorToolbarProps) {
       <ToolbarButton
         onClick={() => fileInputRef.current?.click()}
         title="Insert Image"
+        disabled={isUploading}
       >
-        <Image size={15} />
+        {isUploading ? (
+          <svg className="animate-spin" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="10" strokeOpacity="0.25" />
+            <path d="M12 2a10 10 0 0 1 10 10" strokeLinecap="round" />
+          </svg>
+        ) : (
+          <Image size={15} />
+        )}
       </ToolbarButton>
       <ToolbarButton onClick={handleYoutubeClick} title="Embed YouTube Video">
         <Youtube size={15} />
@@ -239,6 +253,15 @@ export function EditorToolbar({ editor, onImageUpload }: EditorToolbarProps) {
         className="hidden"
         onChange={handleImageFileChange}
       />
+      {isUploading && (
+        <div className="w-full px-3 py-1.5 text-xs text-[var(--color-accent)] bg-blue-50 border-t border-blue-200 flex items-center gap-2">
+          <svg className="animate-spin w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="10" strokeOpacity="0.25" />
+            <path d="M12 2a10 10 0 0 1 10 10" strokeLinecap="round" />
+          </svg>
+          Uploading image...
+        </div>
+      )}
       {uploadError && (
         <div className="w-full px-3 py-1.5 text-xs text-red-600 bg-red-50 border-t border-red-200">
           {uploadError}

@@ -327,30 +327,17 @@ function renderBlock(
       const src = isRealCid
         ? getProjectImageUrl(pdsUrl, did, rawCid)
         : rawCid; // fallback: use as-is (e.g. blob: URL, though it won't work cross-session)
-      const { aspectRatio } = block;
-      const paddingBottom = aspectRatio
-        ? `${(aspectRatio.height / aspectRatio.width) * 100}%`
-        : undefined;
 
       if (!src) return null;
 
       return (
         <div key={index} className="my-4">
-          {paddingBottom ? (
-            <div className="relative w-full" style={{ paddingBottom }}>
-              <img
-                src={src}
-                alt={block.alt ?? ""}
-                className="absolute inset-0 w-full h-full object-cover rounded-lg"
-              />
-            </div>
-          ) : (
-            <img
-              src={src}
-              alt={block.alt ?? ""}
-              className="max-w-full rounded-lg"
-            />
-          )}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={src}
+            alt={block.alt ?? ""}
+            className="max-w-full h-auto rounded-lg block"
+          />
         </div>
       );
     }
