@@ -174,11 +174,15 @@ function listItemToLeaflet(item: JSONContent): LeafletListItem {
 
   const contentBlock = {
     $type: "pub.leaflet.blocks.text" as const,
-    text,
+    plaintext: text,  // canonical
+    text,             // backward compat (remove in future)
     ...(facets.length > 0 ? { facets } : {}),
   };
 
-  const result: LeafletListItem = { content: contentBlock };
+  const result: LeafletListItem = {
+    $type: "pub.leaflet.blocks.unorderedList#listItem" as const,
+    content: contentBlock,
+  };
   if (nestedChildren.length > 0) result.children = nestedChildren;
   return result;
 }
@@ -199,7 +203,8 @@ export function tiptapToLeaflet(doc: JSONContent): LeafletLinearDocument {
         const { text, facets } = extractTextAndFacets(node.content);
         block = {
           $type: "pub.leaflet.blocks.text",
-          text,
+          plaintext: text,  // canonical
+          text,             // backward compat (remove in future)
           ...(facets.length > 0 ? { facets } : {}),
         };
         break;
@@ -210,7 +215,8 @@ export function tiptapToLeaflet(doc: JSONContent): LeafletLinearDocument {
         const { text, facets } = extractTextAndFacets(node.content);
         block = {
           $type: "pub.leaflet.blocks.header",
-          text,
+          plaintext: text,  // canonical
+          text,             // backward compat (remove in future)
           level,
           ...(facets.length > 0 ? { facets } : {}),
         };
@@ -273,7 +279,8 @@ export function tiptapToLeaflet(doc: JSONContent): LeafletLinearDocument {
         const combinedText = parts.join("\n");
         block = {
           $type: "pub.leaflet.blocks.blockquote",
-          text: combinedText,
+          plaintext: combinedText,  // canonical
+          text: combinedText,       // backward compat (remove in future)
           ...(allFacets.length > 0 ? { facets: allFacets } : {}),
         };
         break;
@@ -296,10 +303,8 @@ export function tiptapToLeaflet(doc: JSONContent): LeafletLinearDocument {
           .join("");
         block = {
           $type: "pub.leaflet.blocks.code",
-          // Fix abd: emit plaintext as canonical field; also keep code for legacy compat
           plaintext: codeText,
-          code: codeText,
-          ...(lang ? { lang } : {}),
+          ...(lang ? { language: lang } : {}),
         };
         break;
       }
@@ -324,7 +329,7 @@ export function tiptapToLeaflet(doc: JSONContent): LeafletLinearDocument {
     }
 
     if (block) {
-      blocks.push({ block });
+      blocks.push({ $type: "pub.leaflet.pages.linearDocument#block" as const, block });
     }
   }
 

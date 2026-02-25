@@ -44,7 +44,7 @@ export interface LeafletTextBlock {
   /** Canonical field name per pub.leaflet.pages.linearDocument spec */
   plaintext?: string;
   /** Legacy field name — kept for backward compatibility with leaflet-serializer */
-  text: string;
+  text?: string;
   facets?: LeafletFacet[];
   textSize?: "default" | "small" | "large";
 }
@@ -54,7 +54,7 @@ export interface LeafletHeaderBlock {
   /** Canonical field name per pub.leaflet.pages.linearDocument spec */
   plaintext?: string;
   /** Legacy field name — kept for backward compatibility with leaflet-serializer */
-  text: string;
+  text?: string;
   facets?: LeafletFacet[];
   level?: number; // 1-6
 }
@@ -71,11 +71,12 @@ export interface LeafletBlockquoteBlock {
   /** Canonical field name per pub.leaflet.pages.linearDocument spec */
   plaintext?: string;
   /** Legacy field name — kept for backward compatibility with leaflet-serializer */
-  text: string;
+  text?: string;
   facets?: LeafletFacet[];
 }
 
 export interface LeafletListItem {
+  $type?: "pub.leaflet.blocks.unorderedList#listItem";
   content: LeafletTextBlock | LeafletHeaderBlock | LeafletImageBlock;
   children?: LeafletListItem[];
 }
@@ -138,6 +139,7 @@ export type LeafletBlockAlignment =
   | "pub.leaflet.pages.linearDocument#textAlignJustify";
 
 export interface LeafletBlockWrapper {
+  $type?: "pub.leaflet.pages.linearDocument#block";
   block: LeafletBlock;
   alignment?: LeafletBlockAlignment;
 }
