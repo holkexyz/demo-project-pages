@@ -5,6 +5,20 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import type { JSONContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import ImageExtension from "@tiptap/extension-image";
+
+// Extend TipTap's Image extension to persist custom attrs (cid, mimeType, size)
+// in the document JSON. TipTap silently drops unknown attrs unless they are
+// declared here.
+const CustomImage = ImageExtension.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      cid: { default: null },
+      mimeType: { default: null },
+      size: { default: null },
+    };
+  },
+});
 import YoutubeExtension from "@tiptap/extension-youtube";
 import LinkExtension from "@tiptap/extension-link";
 import PlaceholderExtension from "@tiptap/extension-placeholder";
@@ -97,7 +111,7 @@ export function ProjectEditor({
         heading: { levels: [1, 2, 3] },
         codeBlock: { languageClassPrefix: "language-" },
       }),
-      ImageExtension.configure({
+      CustomImage.configure({
         inline: false,
         allowBase64: true,
         HTMLAttributes: {
@@ -145,6 +159,8 @@ export function ProjectEditor({
               const node = schema.nodes.image.create({
                 src: url,
                 cid: String(blobRef.ref),
+                mimeType: blobRef.mimeType,
+                size: blobRef.size,
               });
               const transaction = view.state.tr.replaceSelectionWith(node);
               view.dispatch(transaction);
@@ -170,6 +186,8 @@ export function ProjectEditor({
                 const node = schema.nodes.image.create({
                   src: url,
                   cid: String(blobRef.ref),
+                  mimeType: blobRef.mimeType,
+                  size: blobRef.size,
                 });
                 const transaction = view.state.tr.replaceSelectionWith(node);
                 view.dispatch(transaction);

@@ -116,8 +116,10 @@ export function EditorToolbar({ editor, onImageUpload, isUploading: isExternalUp
         .focus()
         .setImage({
           src: url,
-          // @ts-expect-error — custom attr
+          // @ts-expect-error — custom attrs not in TipTap's ImageOptions type
           cid: String(blobRef.ref),
+          mimeType: blobRef.mimeType,
+          size: blobRef.size,
         })
         .run();
     } catch (err) {

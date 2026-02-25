@@ -589,6 +589,8 @@ export function leafletToTiptap(doc: LeafletLinearDocument): JSONContent {
             src: cid, // Will be replaced with full URL by the editor
             alt: block.alt ?? "",
             cid,
+            mimeType: block.image.mimeType,
+            size: block.image.size,
           },
         });
         break;
