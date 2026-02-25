@@ -2,6 +2,7 @@
 
 import { useEffect, useCallback, useState } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
+import type { JSONContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import ImageExtension from "@tiptap/extension-image";
 import YoutubeExtension from "@tiptap/extension-youtube";
@@ -9,6 +10,7 @@ import LinkExtension from "@tiptap/extension-link";
 import PlaceholderExtension from "@tiptap/extension-placeholder";
 import type { LeafletLinearDocument, BlobRef } from "@/lib/atproto/project-types";
 import { tiptapToLeaflet, leafletToTiptap } from "@/lib/editor/leaflet-serializer";
+import { getProjectImageUrl } from "@/lib/atproto/projects";
 import { EditorToolbar } from "./editor-toolbar";
 import "./editor.css";
 
@@ -18,6 +20,43 @@ interface ProjectEditorProps {
   onImageUpload: (file: File) => Promise<{ blobRef: BlobRef; url: string }>;
   placeholder?: string;
   editable?: boolean;
+  pdsUrl?: string;
+  did?: string;
+}
+
+/**
+ * Post-process a TipTap JSONContent document to resolve bare CID strings in
+ * image node `src` attributes to real blob URLs.  Only top-level nodes are
+ * visited because images cannot be nested inside other block nodes in our
+ * schema.
+ */
+function resolveImageCids(
+  doc: JSONContent,
+  pdsUrl: string,
+  did: string
+): JSONContent {
+  if (!doc.content) return doc;
+  return {
+    ...doc,
+    content: doc.content.map((node) => {
+      if (node.type === "image" && node.attrs?.cid) {
+        const src = node.attrs.src as string | undefined;
+        // Skip if src is already a real URL
+        if (src && (src.startsWith("http") || src.startsWith("blob:"))) {
+          return node;
+        }
+        const cid = node.attrs.cid as string;
+        return {
+          ...node,
+          attrs: {
+            ...node.attrs,
+            src: getProjectImageUrl(pdsUrl, did, cid),
+          },
+        };
+      }
+      return node;
+    }),
+  };
 }
 
 export function ProjectEditor({
@@ -26,6 +65,8 @@ export function ProjectEditor({
   onImageUpload,
   placeholder = "Start writing your project description...",
   editable = true,
+  pdsUrl,
+  did,
 }: ProjectEditorProps) {
   const [imageError, setImageError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -81,7 +122,11 @@ export function ProjectEditor({
         placeholder,
       }),
     ],
-    content: content ? leafletToTiptap(content) : { type: "doc", content: [{ type: "paragraph" }] },
+    content: content && pdsUrl && did
+      ? resolveImageCids(leafletToTiptap(content), pdsUrl, did)
+      : content
+        ? leafletToTiptap(content)
+        : { type: "doc", content: [{ type: "paragraph" }] },
     editable,
     onUpdate: ({ editor }) => {
       const json = editor.getJSON();
@@ -152,12 +197,14 @@ export function ProjectEditor({
     if (!editor || editor.isDestroyed) return;
     if (!content) return;
     const currentJson = editor.getJSON();
-    const newJson = leafletToTiptap(content);
+    const newJson = pdsUrl && did
+      ? resolveImageCids(leafletToTiptap(content), pdsUrl, did)
+      : leafletToTiptap(content);
     // Only update if content actually changed to avoid cursor jumps
     if (JSON.stringify(currentJson) !== JSON.stringify(newJson)) {
       editor.commands.setContent(newJson, false);
     }
-  }, [editor, content]);
+  }, [editor, content, pdsUrl, did]);
 
   return (
     <div className="project-editor border border-[var(--color-light-gray)] rounded-lg overflow-hidden">

@@ -14,7 +14,7 @@ import type { LeafletLinearDocument } from "@/lib/atproto/project-types";
 
 function CreateProjectContent() {
   const router = useRouter();
-  const { agent, did } = useAuth();
+  const { agent, did, pdsUrl } = useAuth();
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -70,6 +70,8 @@ function CreateProjectContent() {
         isSaving={isSaving}
         onImageUpload={handleImageUpload}
         saveError={saveError}
+        pdsUrl={pdsUrl ?? undefined}
+        did={did ?? undefined}
       />
     </>
   );

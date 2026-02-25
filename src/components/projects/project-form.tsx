@@ -25,6 +25,8 @@ export interface ProjectFormProps {
   mode: "create" | "edit";
   onImageUpload: (file: File) => Promise<{ blobRef: BlobRef; url: string }>;
   saveError?: string | null;
+  pdsUrl?: string;
+  did?: string;
 }
 
 const EMPTY_DOCUMENT: LeafletLinearDocument = { blocks: [] };
@@ -36,6 +38,8 @@ export function ProjectForm({
   mode,
   onImageUpload,
   saveError,
+  pdsUrl,
+  did,
 }: ProjectFormProps) {
   const router = useRouter();
 
@@ -233,6 +237,8 @@ export function ProjectForm({
             onChange={setDescription}
             onImageUpload={onImageUpload}
             placeholder="Describe your project in detail..."
+            pdsUrl={pdsUrl}
+            did={did}
           />
         </div>
       </div>

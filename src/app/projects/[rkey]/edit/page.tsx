@@ -187,6 +187,8 @@ function EditProjectContent() {
         isSaving={isSaving}
         onImageUpload={handleImageUpload}
         saveError={saveError}
+        pdsUrl={pdsUrl ?? undefined}
+        did={did ?? undefined}
       />
     </>
   );
