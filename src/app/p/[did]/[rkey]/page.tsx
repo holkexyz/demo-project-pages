@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { Edit } from "lucide-react";
+import { ArrowLeft, Edit } from "lucide-react";
 import {
   resolveDidToPds,
   getPublicProject,
@@ -126,6 +126,15 @@ export default function PublicProjectPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 pt-[56px]">
+      {/* Back link */}
+      <Link
+        href="/"
+        className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-navy font-mono transition-colors duration-150 mb-6"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Back
+      </Link>
+
       {/* Author header */}
       <div className="flex items-center gap-3 mb-8 pb-6 border-b border-gray-200">
         <Avatar

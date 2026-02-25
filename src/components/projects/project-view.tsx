@@ -1,9 +1,11 @@
 "use client";
 
 import React, { useState } from "react";
-import { Pencil, Share2, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { ArrowLeft, Pencil, Share2, Trash2 } from "lucide-react";
 import type { ProjectRecord } from "@/lib/atproto/project-types";
 import { getProjectImageUrl } from "@/lib/atproto/projects";
+import { extractCid } from "@/lib/atproto/blob-utils";
 import LeafletRenderer from "@/lib/editor/leaflet-renderer";
 import Button from "@/components/ui/button";
 
