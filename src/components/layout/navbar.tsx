@@ -2,16 +2,25 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useNavbarVariant } from "@/lib/navbar-context";
 import { useProfile } from "@/hooks/use-profile";
 import Avatar from "@/components/ui/avatar";
+
+const NAV_LINKS = [
+  { label: "Tags", href: "/tags" },
+  { label: "Activities", href: "/activities" },
+  { label: "Explorer", href: "/explorer" },
+  { label: "Projects", href: "/projects" },
+];
 
 const Navbar: React.FC = () => {
   const { isLoading, session, did, openSignIn, signOut } = useAuth();
   const { variant } = useNavbarVariant();
   const { profile, avatarUrl } = useProfile();
   const [scrolled, setScrolled] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -42,6 +51,22 @@ const Navbar: React.FC = () => {
     ? "/assets/certified_wordmark_white.svg"
     : "/assets/certified_wordmark_darkblue.svg";
 
+  const getLinkClass = (href: string) => {
+    const isActive = pathname === href || pathname.startsWith(href + "/");
+    if (isTransparent) {
+      return `font-mono text-xs uppercase tracking-wider px-3 py-1.5 rounded transition-colors duration-150 ${
+        isActive
+          ? "text-white underline underline-offset-4"
+          : "text-white/70 hover:text-white"
+      }`;
+    }
+    return `font-mono text-xs uppercase tracking-wider px-3 py-1.5 rounded transition-colors duration-150 ${
+      isActive
+        ? "text-[var(--color-navy)] underline underline-offset-4"
+        : "text-[var(--color-dark-gray)] hover:text-[var(--color-navy)]"
+    }`;
+  };
+
   return (
     <nav className={navClasses}>
       <div className="navbar__inner">
@@ -57,16 +82,13 @@ const Navbar: React.FC = () => {
             <div className="w-20" />
           ) : session ? (
             <>
-              <Link
-                href="/"
-                className={`font-mono text-xs uppercase tracking-wider px-3 py-1.5 rounded transition-colors duration-150 ${
-                  isTransparent
-                    ? "text-white/70 hover:text-white"
-                    : "text-[var(--color-dark-gray)] hover:text-[var(--color-navy)]"
-                }`}
-              >
-                My Projects
-              </Link>
+              <div className="flex items-center gap-1 overflow-x-auto">
+                {NAV_LINKS.map(({ label, href }) => (
+                  <Link key={href} href={href} className={getLinkClass(href)}>
+                    {label}
+                  </Link>
+                ))}
+              </div>
               <Link
                 href="/"
                 className="flex items-center hover:opacity-80 transition-opacity duration-150"

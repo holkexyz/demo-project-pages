@@ -2,18 +2,22 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import AuthGuard from "@/components/layout/auth-guard";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useWorkScopeTags } from "@/hooks/use-work-scope-tags";
 import { useActivities } from "@/hooks/use-activities";
 import { RuleBuilder } from "./rule-builder";
 import { ActivityResults } from "./activity-results";
+import { CollectionsPanel } from "./collections-panel";
+import { AnalyticsPanel } from "./analytics-panel";
 
 function ExplorerContent() {
   const { did } = useAuth();
   const { tags, isLoading: tagsLoading } = useWorkScopeTags();
   const { activities, isLoading: activitiesLoading } = useActivities();
   const [expression, setExpression] = useState("");
+  const [analyticsOpen, setAnalyticsOpen] = useState(true);
 
   const isLoading = tagsLoading || activitiesLoading;
 
@@ -21,7 +25,7 @@ function ExplorerContent() {
 
   return (
     <div className="app-page">
-      <div className="app-page__inner" style={{ maxWidth: "1280px" }}>
+      <div className="app-page__inner" style={{ maxWidth: "1440px" }}>
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-[var(--color-navy)]">
@@ -51,18 +55,48 @@ function ExplorerContent() {
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <RuleBuilder
-              availableTags={tags}
-              expression={expression}
-              onExpressionChange={setExpression}
-            />
-            <ActivityResults
-              activities={activities}
-              expression={expression}
-              availableTags={tags}
-            />
-          </div>
+          <>
+            {/* Rule builder + results + collections */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+              <RuleBuilder
+                availableTags={tags}
+                expression={expression}
+                onExpressionChange={setExpression}
+              />
+              <ActivityResults
+                activities={activities}
+                expression={expression}
+                availableTags={tags}
+              />
+              <CollectionsPanel
+                activities={activities}
+                availableTags={tags}
+                activeExpression={expression}
+                onSelectCollection={setExpression}
+              />
+            </div>
+
+            {/* Analytics section */}
+            <div className="mt-8">
+              <button
+                type="button"
+                onClick={() => setAnalyticsOpen((prev) => !prev)}
+                className="flex items-center gap-2 w-full text-left mb-4 group"
+              >
+                {analyticsOpen ? (
+                  <ChevronDown className="w-5 h-5 text-[var(--color-mid-gray)] group-hover:text-[var(--color-navy)] transition-colors" />
+                ) : (
+                  <ChevronRight className="w-5 h-5 text-[var(--color-mid-gray)] group-hover:text-[var(--color-navy)] transition-colors" />
+                )}
+                <h2 className="text-xl font-semibold text-[var(--color-navy)] group-hover:text-[var(--color-accent)] transition-colors">
+                  Analytics
+                </h2>
+              </button>
+              {analyticsOpen && (
+                <AnalyticsPanel activities={activities} availableTags={tags} />
+              )}
+            </div>
+          </>
         )}
       </div>
     </div>
