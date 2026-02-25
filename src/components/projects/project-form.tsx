@@ -187,8 +187,7 @@ export function ProjectForm({
 
         {/* Short description input */}
         <div>
-          <input
-            type="text"
+          <textarea
             value={shortDescription}
             onChange={(e) => {
               if (e.target.value.length <= 300) {
@@ -197,7 +196,8 @@ export function ProjectForm({
             }}
             placeholder="A brief summary of your project"
             maxLength={300}
-            className="w-full text-base bg-transparent border-none border-b border-transparent focus:border-b focus:border-[var(--color-light-gray)] outline-none text-[var(--color-dark-gray)] placeholder:text-[var(--color-mid-gray)] pb-1 transition-colors duration-150"
+            rows={2}
+            className="w-full text-base bg-transparent border-none border-b border-transparent focus:border-b focus:border-[var(--color-light-gray)] outline-none text-[var(--color-dark-gray)] placeholder:text-[var(--color-mid-gray)] pb-1 transition-colors duration-150 resize-none"
             aria-label="Short description"
           />
           <div className="flex justify-end mt-1">
