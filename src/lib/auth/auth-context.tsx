@@ -19,6 +19,11 @@ const AuthContext = createContext<AuthState | undefined>(undefined);
 
 const PDS_URL = process.env.NEXT_PUBLIC_PDS_URL || "https://otp.certs.network";
 
+// ePDS (otp.certs.network) rejects transition:generic, so use "atproto" for email/OTP flow.
+// External providers (Bluesky etc.) need "atproto transition:generic" for write access.
+const EPDS_SCOPE = "atproto";
+const EXTERNAL_SCOPE = "atproto transition:generic";
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [session, setSession] = useState<OAuthSession | null>(null);
@@ -113,26 +118,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           trimmedInput.startsWith("https://")
         ) {
           await client.signIn(trimmedInput, {
-            scope: "atproto",
+            scope: EXTERNAL_SCOPE,
           });
           return;
         }
 
         if (trimmedInput.startsWith("did:")) {
           await client.signIn(trimmedInput, {
-            scope: "atproto",
+            scope: EXTERNAL_SCOPE,
           });
           return;
         }
 
         try {
           await client.signIn(trimmedInput, {
-            scope: "atproto",
+            scope: EXTERNAL_SCOPE,
           });
         } catch (handleErr) {
           try {
             await client.signIn("https://" + trimmedInput, {
-              scope: "atproto",
+              scope: EXTERNAL_SCOPE,
             });
           } catch {
             throw handleErr;
@@ -177,7 +182,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const client = getOAuthClient();
       const prompt = authMode === "sign-up" ? "create" : "login";
       const url = await client.authorize(PDS_URL, {
-        scope: "atproto",
+        scope: EPDS_SCOPE,
         display: "page",
         prompt,
       });
@@ -206,26 +211,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         trimmedHandle.startsWith("https://")
       ) {
         await client.signIn(trimmedHandle, {
-          scope: "atproto",
+          scope: EXTERNAL_SCOPE,
         });
         return;
       }
 
       if (trimmedHandle.startsWith("did:")) {
         await client.signIn(trimmedHandle, {
-          scope: "atproto",
+          scope: EXTERNAL_SCOPE,
         });
         return;
       }
 
       try {
         await client.signIn(trimmedHandle, {
-          scope: "atproto",
+          scope: EXTERNAL_SCOPE,
         });
       } catch (handleErr) {
         try {
           await client.signIn("https://" + trimmedHandle, {
-            scope: "atproto",
+            scope: EXTERNAL_SCOPE,
           });
         } catch {
           throw handleErr;

@@ -41,7 +41,7 @@ export function getOAuthClient(): BrowserOAuthClient {
         redirect_uris: [`${origin}/oauth/callback`],
         response_types: ["code"],
         grant_types: ["authorization_code", "refresh_token"],
-        scope: "atproto",
+        scope: "atproto transition:generic",
         token_endpoint_auth_method: "none",
         application_type: "web",
         dpop_bound_access_tokens: true,
