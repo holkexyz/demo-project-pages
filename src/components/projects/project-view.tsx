@@ -49,12 +49,8 @@ const ProjectView: React.FC<ProjectViewProps> = ({
     if (project.banner.$type === "org.hypercerts.defs#uri") {
       bannerUrl = project.banner.uri;
     } else if (project.banner.$type === "org.hypercerts.defs#largeImage") {
-      // BlobRef from @atproto/api has ref.$link
-      const blobRef = project.banner.image as unknown as {
-        ref?: { $link?: string };
-        cid?: string;
-      };
-      const cid = blobRef?.ref?.$link ?? blobRef?.cid ?? "";
+      // Handle both BlobRef class (from Agent) and raw JSON wire format (from public API)
+      const cid = extractCid(project.banner.image);
       if (cid) {
         bannerUrl = getProjectImageUrl(pdsUrl, did, cid);
       }

@@ -4,6 +4,7 @@ import React from "react";
 import Card from "@/components/ui/card";
 import type { ProjectListItem } from "@/lib/atproto/project-types";
 import { getProjectImageUrl } from "@/lib/atproto/projects";
+import { extractCid } from "@/lib/atproto/blob-utils";
 
 export interface ProjectCardProps {
   project: ProjectListItem;
@@ -34,12 +35,8 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
     if (value.banner.$type === "org.hypercerts.defs#uri") {
       bannerUrl = value.banner.uri;
     } else if (value.banner.$type === "org.hypercerts.defs#largeImage") {
-      // BlobRef has a .ref.$link (CID) we can use
-      const blobRef = value.banner.image;
-      const cid =
-        typeof blobRef === "object" && blobRef !== null && "ref" in blobRef
-          ? (blobRef as { ref: { $link: string } }).ref.$link
-          : null;
+      // Handle both BlobRef class (from Agent) and raw JSON wire format (from public API)
+      const cid = extractCid(value.banner.image);
       if (cid) {
         bannerUrl = getProjectImageUrl(pdsUrl, did, cid);
       }
