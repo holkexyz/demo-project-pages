@@ -114,11 +114,12 @@ export async function getPublicRecord(
 
   const response = await fetch(url);
 
-  if (response.status === 404) {
-    return null;
-  }
-
   if (!response.ok) {
+    // Bluesky PDS returns 400 for missing records; others return 404.
+    // Treat both as "not found" to avoid breaking the page.
+    if (response.status === 400 || response.status === 404) {
+      return null;
+    }
     throw new Error(
       `Failed to fetch record: HTTP ${response.status}`
     );
