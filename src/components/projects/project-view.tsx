@@ -94,6 +94,15 @@ const ProjectView: React.FC<ProjectViewProps> = ({
 
   return (
     <div className="max-w-3xl mx-auto">
+      {/* Back to projects link */}
+      <Link
+        href="/"
+        className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-navy font-mono transition-colors duration-150 mb-4"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Back to projects
+      </Link>
+
       {/* Banner */}
       <div
         className="w-full rounded overflow-hidden"
