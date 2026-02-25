@@ -73,10 +73,10 @@ export default function HomeClient() {
       <div className="hero__bg" aria-hidden="true" />
       <div className="hero__inner">
         <h1 className="hero__title hero-reveal">
-          One account.<br />Any app.
+          Demo App.<br />For Ken.
         </h1>
         <p className="hero__subtitle hero-reveal">
-          Your identity and data \u2014 everywhere you go.
+          Leaflet project descriptions all the way.
         </p>
         <div className="hero-reveal">
           <div className="hero__actions">
