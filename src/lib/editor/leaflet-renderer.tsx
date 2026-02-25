@@ -404,11 +404,27 @@ function renderBlock(
       // Convert YouTube watch/share URLs to embeddable nocookie URLs
       const embedUrl = toYouTubeEmbedUrl(rawUrl) ?? rawUrl;
 
+      // Use block.height if specified; otherwise use responsive padding-bottom for 16:9
+      if (block.height) {
+        return (
+          <div key={index} className="my-4 w-full" style={{ height: block.height }}>
+            <iframe
+              src={embedUrl}
+              className="w-full h-full rounded-lg"
+              sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"
+              allowFullScreen
+              title="Embedded content"
+            />
+          </div>
+        );
+      }
+
+      // Responsive 16:9 using padding-bottom trick (works in all containers)
       return (
-        <div key={index} className="my-4 w-full aspect-video">
+        <div key={index} className="my-4 w-full relative" style={{ paddingBottom: "56.25%" }}>
           <iframe
             src={embedUrl}
-            className="w-full h-full rounded-lg"
+            className="absolute inset-0 w-full h-full rounded-lg"
             sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"
             allowFullScreen
             title="Embedded content"
