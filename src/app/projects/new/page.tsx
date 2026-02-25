@@ -16,6 +16,7 @@ function CreateProjectContent() {
   const router = useRouter();
   const { agent, did } = useAuth();
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const handleImageUpload = async (
     file: File
@@ -36,6 +37,7 @@ function CreateProjectContent() {
     if (!agent || !did) throw new Error("Not authenticated");
 
     setIsSaving(true);
+    setSaveError(null);
     try {
       const bannerField = data.banner
         ? { $type: "org.hypercerts.defs#largeImage" as const, image: data.banner }
@@ -52,18 +54,31 @@ function CreateProjectContent() {
       });
 
       router.push(`/projects/${result.rkey}`);
+    } catch (err) {
+      setSaveError(
+        err instanceof Error ? err.message : "Failed to save project. Please try again."
+      );
     } finally {
       setIsSaving(false);
     }
   };
 
   return (
-    <ProjectForm
-      mode="create"
-      onSave={handleSave}
-      isSaving={isSaving}
-      onImageUpload={handleImageUpload}
-    />
+    <>
+      {saveError && (
+        <div className="max-w-3xl mx-auto px-4 pt-4">
+          <p className="text-body-sm text-red-600 bg-red-50 border border-red-200 rounded px-4 py-3" role="alert">
+            {saveError}
+          </p>
+        </div>
+      )}
+      <ProjectForm
+        mode="create"
+        onSave={handleSave}
+        isSaving={isSaving}
+        onImageUpload={handleImageUpload}
+      />
+    </>
   );
 }
 

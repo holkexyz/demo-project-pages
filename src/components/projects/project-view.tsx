@@ -16,6 +16,15 @@ export interface ProjectViewProps {
   onEdit?: () => void;
   onShare?: () => void;
   onDelete?: () => void;
+  deleteError?: string | null;
+  /** Optional display name or handle to show instead of raw DID */
+  displayName?: string;
+}
+
+/** Truncate a DID to a readable short form, e.g. did:plc:abc...xyz */
+function truncateDid(did: string): string {
+  if (did.length <= 20) return did;
+  return `${did.slice(0, 12)}...${did.slice(-4)}`;
 }
 
 const ProjectView: React.FC<ProjectViewProps> = ({
@@ -26,6 +35,8 @@ const ProjectView: React.FC<ProjectViewProps> = ({
   onEdit,
   onShare,
   onDelete,
+  deleteError,
+  displayName,
 }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -66,11 +77,16 @@ const ProjectView: React.FC<ProjectViewProps> = ({
     setIsDeleting(true);
     try {
       await onDelete();
+      // On success the parent navigates away; keep dialog open until navigation
+    } catch {
+      // Error is surfaced via deleteError prop from parent
     } finally {
       setIsDeleting(false);
-      setShowDeleteConfirm(false);
     }
   };
+
+  // Label shown in meta row: prefer display name / handle, fall back to truncated DID
+  const authorLabel = displayName || truncateDid(did);
 
   const handleDeleteCancel = () => {
     setShowDeleteConfirm(false);
@@ -110,7 +126,7 @@ const ProjectView: React.FC<ProjectViewProps> = ({
           className="text-caption text-gray-400 font-mono truncate max-w-xs"
           title={did}
         >
-          {did}
+          {authorLabel}
         </span>
       </div>
 
@@ -186,6 +202,11 @@ const ProjectView: React.FC<ProjectViewProps> = ({
               Are you sure you want to delete &ldquo;{project.title}&rdquo;? This
               action cannot be undone.
             </p>
+            {deleteError && (
+              <p className="text-body-sm text-red-600 mb-4" role="alert">
+                {deleteError}
+              </p>
+            )}
             <div className="flex gap-3 justify-end">
               <Button
                 variant="secondary"

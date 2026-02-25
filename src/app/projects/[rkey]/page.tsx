@@ -20,6 +20,7 @@ export default function ProjectPage() {
   const [project, setProject] = useState<ProjectListItem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   useEffect(() => {
@@ -67,8 +68,15 @@ export default function ProjectPage() {
 
   const handleDelete = async () => {
     if (!auth.agent || !auth.did) return;
-    await deleteProject(auth.agent, auth.did, rkey);
-    router.push("/");
+    setDeleteError(null);
+    try {
+      await deleteProject(auth.agent, auth.did, rkey);
+      router.push("/");
+    } catch (err) {
+      setDeleteError(
+        err instanceof Error ? err.message : "Failed to delete project. Please try again."
+      );
+    }
   };
 
   // Build share URL
@@ -116,6 +124,7 @@ export default function ProjectPage() {
           onEdit={handleEdit}
           onShare={handleShare}
           onDelete={handleDelete}
+          deleteError={deleteError}
         />
       </div>
 

@@ -30,6 +30,7 @@ function EditProjectContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!agent || !did || !rkey) return;
@@ -81,6 +82,7 @@ function EditProjectContent() {
     if (!agent || !did || !project) throw new Error("Not authenticated");
 
     setIsSaving(true);
+    setSaveError(null);
     try {
       // Determine banner: use new upload if provided, otherwise keep existing
       let bannerField:
@@ -108,6 +110,10 @@ function EditProjectContent() {
       });
 
       router.push(`/projects/${rkey}`);
+    } catch (err) {
+      setSaveError(
+        err instanceof Error ? err.message : "Failed to save project. Please try again."
+      );
     } finally {
       setIsSaving(false);
     }
@@ -169,18 +175,27 @@ function EditProjectContent() {
       : null;
 
   return (
-    <ProjectForm
-      mode="edit"
-      initialData={{
-        title: project.value.title,
-        shortDescription: project.value.shortDescription,
-        description: project.value.description,
-        bannerUrl: existingBannerUrl,
-      }}
-      onSave={handleSave}
-      isSaving={isSaving}
-      onImageUpload={handleImageUpload}
-    />
+    <>
+      {saveError && (
+        <div className="max-w-3xl mx-auto px-4 pt-4">
+          <p className="text-body-sm text-red-600 bg-red-50 border border-red-200 rounded px-4 py-3" role="alert">
+            {saveError}
+          </p>
+        </div>
+      )}
+      <ProjectForm
+        mode="edit"
+        initialData={{
+          title: project.value.title,
+          shortDescription: project.value.shortDescription,
+          description: project.value.description,
+          bannerUrl: existingBannerUrl,
+        }}
+        onSave={handleSave}
+        isSaving={isSaving}
+        onImageUpload={handleImageUpload}
+      />
+    </>
   );
 }
 

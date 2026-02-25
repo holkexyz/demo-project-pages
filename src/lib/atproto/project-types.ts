@@ -89,18 +89,15 @@ export interface LeafletUnorderedListItem {
 
 export interface LeafletUnorderedListBlock {
   $type: "pub.leaflet.blocks.unorderedList";
-  /** Canonical field name per pub.leaflet.pages.linearDocument spec */
-  children?: LeafletListItem[];
-  /** Legacy field name — kept for backward compatibility with leaflet-serializer */
-  items: LeafletUnorderedListItem[];
+  children: LeafletListItem[];
 }
 
 export interface LeafletCodeBlock {
   $type: "pub.leaflet.blocks.code";
-  /** Canonical field name per pub.leaflet.pages.linearDocument spec */
+  /** Canonical field name per pub.leaflet.pages.linearDocument spec — at least one of plaintext/code must be present */
   plaintext?: string;
-  /** Legacy field name — kept for backward compatibility with leaflet-serializer */
-  code: string;
+  /** Legacy field name — kept for backward compatibility; prefer plaintext */
+  code?: string;
   language?: string;
   /** Legacy field name — kept for backward compatibility with leaflet-serializer */
   lang?: string;

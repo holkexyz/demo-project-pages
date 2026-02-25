@@ -15,7 +15,7 @@ import ProjectGallery from "@/components/projects/project-gallery";
 export default function HomeClient() {
   const { isLoading, session, did, agent, pdsUrl, openSignIn, openSignUp } = useAuth();
   const { profile, isLoading: profileLoading, error: profileError, refetch: refetchProfile, avatarUrl, bannerUrl } = useProfile();
-  const { projects, isLoading: projectsLoading, error: projectsError } = useProjects(agent, did);
+  const { projects, isLoading: projectsLoading, error: projectsError, refetch: refetchProjects } = useProjects(agent, did);
   const { setVariant } = useNavbarVariant();
   const router = useRouter();
 
@@ -72,6 +72,7 @@ export default function HomeClient() {
               did={did}
               onProjectClick={(rkey) => router.push(`/projects/${rkey}`)}
               onCreateProject={() => router.push("/projects/new")}
+              onRetry={refetchProjects}
             />
           </>
         ) : null}

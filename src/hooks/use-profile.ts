@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { useAuth } from "@/lib/auth/auth-context"
 import { getProfile, getAvatarUrl, getBannerUrl } from "@/lib/atproto/profile"
 import type { CertifiedProfile } from "@/lib/atproto/types"
@@ -18,6 +18,9 @@ export function useProfile(): {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Stable ref so refetch() always calls the latest version
+  const cancelledRef = useRef(false)
+
   const fetchProfile = useCallback(async () => {
     // If not authenticated, return null profile without error
     if (!agent || !did) {
@@ -31,18 +34,26 @@ export function useProfile(): {
       setIsLoading(true)
       setError(null)
       const fetchedProfile = await getProfile(agent, did)
+      if (cancelledRef.current) return
       setProfile(fetchedProfile)
     } catch (err) {
+      if (cancelledRef.current) return
       console.error("Failed to fetch profile:", err)
       setError(err instanceof Error ? err.message : "Failed to fetch profile")
     } finally {
-      setIsLoading(false)
+      if (!cancelledRef.current) {
+        setIsLoading(false)
+      }
     }
   }, [agent, did])
 
-  // Fetch profile on mount and when did changes
+  // Fetch profile on mount and when agent/did/pdsUrl change
   useEffect(() => {
+    cancelledRef.current = false
     fetchProfile()
+    return () => {
+      cancelledRef.current = true
+    }
   }, [fetchProfile])
 
   // Compute avatar and banner URLs

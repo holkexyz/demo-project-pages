@@ -31,6 +31,8 @@ export default function PublicProjectPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [retryCount, setRetryCount] = useState(0);
+
   useEffect(() => {
     if (!did || !rkey) {
       setError("Invalid project URL.");
@@ -69,7 +71,7 @@ export default function PublicProjectPage() {
     };
 
     fetchData();
-  }, [did, rkey]);
+  }, [did, rkey, retryCount]);
 
   if (isLoading) {
     return (
@@ -85,6 +87,7 @@ export default function PublicProjectPage() {
         <ErrorMessage
           title="Project not found"
           message={error}
+          onRetry={() => setRetryCount((c) => c + 1)}
         />
       </div>
     );

@@ -5,11 +5,26 @@ import type {
   LeafletFacet,
   LeafletFacetFeature,
   LeafletUnorderedListItem,
+  LeafletListItem,
   LeafletBlock,
 } from "@/lib/atproto/project-types";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
+
+/**
+ * Infer a MIME type from a URL's file extension.
+ * Returns a reasonable default if the extension is not recognized.
+ */
+function inferMimeTypeFromUrl(url: string): string {
+  const lower = url.toLowerCase().split("?")[0];
+  if (lower.endsWith(".png")) return "image/png";
+  if (lower.endsWith(".webp")) return "image/webp";
+  if (lower.endsWith(".gif")) return "image/gif";
+  if (lower.endsWith(".svg")) return "image/svg+xml";
+  // Default to jpeg for unknown extensions
+  return "image/jpeg";
+}
 
 /**
  * Get the UTF-8 byte length of a string up to a given character index.
@@ -20,10 +35,19 @@ function byteOffsetAt(text: string, charIndex: number): number {
 
 /**
  * Get the character index corresponding to a UTF-8 byte offset.
+ * If byteOffset falls in the middle of a multi-byte UTF-8 sequence,
+ * it is rounded back to the start of that sequence to avoid producing
+ * U+FFFD replacement characters.
  */
 function charIndexAtByteOffset(text: string, byteOffset: number): number {
   const bytes = encoder.encode(text);
-  const slice = bytes.slice(0, byteOffset);
+  // Clamp to valid range
+  let offset = Math.max(0, Math.min(byteOffset, bytes.length));
+  // Walk back while we're pointing at a UTF-8 continuation byte (0x80–0xBF)
+  while (offset > 0 && (bytes[offset] & 0xc0) === 0x80) {
+    offset--;
+  }
+  const slice = bytes.slice(0, offset);
   return decoder.decode(slice).length;
 }
 
@@ -97,6 +121,9 @@ function extractTextAndFacets(
           case "underline":
             features.push({ $type: "pub.leaflet.richtext.facet#underline" });
             break;
+          case "highlight":
+            features.push({ $type: "pub.leaflet.richtext.facet#highlight" });
+            break;
           case "link": {
             const href =
               (mark.attrs?.href as string) ?? (mark.attrs?.url as string) ?? "";
@@ -106,6 +133,7 @@ function extractTextAndFacets(
             });
             break;
           }
+          // Unrecognized marks are silently ignored — text is still included in plaintext
         }
       }
 
@@ -124,29 +152,34 @@ function extractTextAndFacets(
 }
 
 /**
- * Convert a TipTap listItem node to a LeafletUnorderedListItem.
+ * Convert a TipTap listItem node to a canonical LeafletListItem.
  */
-function listItemToLeaflet(item: JSONContent): LeafletUnorderedListItem {
-  const children = item.content ?? [];
+function listItemToLeaflet(item: JSONContent): LeafletListItem {
+  const nodeChildren = item.content ?? [];
   let text = "";
   let facets: LeafletFacet[] = [];
-  const nestedItems: LeafletUnorderedListItem[] = [];
+  const nestedChildren: LeafletListItem[] = [];
 
-  for (const child of children) {
+  for (const child of nodeChildren) {
     if (child.type === "paragraph") {
       const extracted = extractTextAndFacets(child.content);
       text = extracted.text;
       facets = extracted.facets;
     } else if (child.type === "bulletList") {
       for (const nestedItem of child.content ?? []) {
-        nestedItems.push(listItemToLeaflet(nestedItem));
+        nestedChildren.push(listItemToLeaflet(nestedItem));
       }
     }
   }
 
-  const result: LeafletUnorderedListItem = { text };
-  if (facets.length > 0) result.facets = facets;
-  if (nestedItems.length > 0) result.items = nestedItems;
+  const contentBlock = {
+    $type: "pub.leaflet.blocks.text" as const,
+    text,
+    ...(facets.length > 0 ? { facets } : {}),
+  };
+
+  const result: LeafletListItem = { content: contentBlock };
+  if (nestedChildren.length > 0) result.children = nestedChildren;
   return result;
 }
 
@@ -188,13 +221,18 @@ export function tiptapToLeaflet(doc: JSONContent): LeafletLinearDocument {
         const src = (node.attrs?.src as string) ?? "";
         const alt = (node.attrs?.alt as string) ?? "";
         const cid = (node.attrs?.cid as string) ?? "";
+        // Prefer explicit mimeType/size attrs; fall back to inferring from URL extension
+        const attrMimeType = node.attrs?.mimeType as string | undefined;
+        const attrSize = node.attrs?.size as number | undefined;
+        const inferredMimeType = attrMimeType ?? inferMimeTypeFromUrl(src);
+        const resolvedSize = attrSize ?? 0;
         block = {
           $type: "pub.leaflet.blocks.image",
           image: {
             $type: "blob",
             ref: { $link: cid || src },
-            mimeType: "image/jpeg",
-            size: 0,
+            mimeType: inferredMimeType,
+            size: resolvedSize,
           },
           alt,
           aspectRatio: { width: 800, height: 600 },
@@ -242,10 +280,10 @@ export function tiptapToLeaflet(doc: JSONContent): LeafletLinearDocument {
       }
 
       case "bulletList": {
-        const items = (node.content ?? []).map(listItemToLeaflet);
+        const children = (node.content ?? []).map(listItemToLeaflet);
         block = {
           $type: "pub.leaflet.blocks.unorderedList",
-          items,
+          children,
         };
         break;
       }
@@ -258,6 +296,8 @@ export function tiptapToLeaflet(doc: JSONContent): LeafletLinearDocument {
           .join("");
         block = {
           $type: "pub.leaflet.blocks.code",
+          // Fix abd: emit plaintext as canonical field; also keep code for legacy compat
+          plaintext: codeText,
           code: codeText,
           ...(lang ? { lang } : {}),
         };
@@ -310,8 +350,9 @@ interface TextSegment {
 
 /**
  * Convert a single LeafletFacetFeature to a TipTap MarkSpec.
+ * Returns null for unknown/unsupported feature types (they are filtered out by the caller).
  */
-function featureToMark(feature: LeafletFacetFeature): MarkSpec {
+function featureToMark(feature: LeafletFacetFeature): MarkSpec | null {
   switch (feature.$type) {
     case "pub.leaflet.richtext.facet#bold":
       return { type: "bold" };
@@ -323,13 +364,16 @@ function featureToMark(feature: LeafletFacetFeature): MarkSpec {
       return { type: "strike" };
     case "pub.leaflet.richtext.facet#underline":
       return { type: "underline" };
+    case "pub.leaflet.richtext.facet#highlight":
+      return { type: "highlight" };
     case "pub.leaflet.richtext.facet#link":
       return {
         type: "link",
         attrs: { href: feature.uri, target: "_blank" },
       };
     default:
-      return { type: "bold" }; // fallback
+      // Unknown feature types (e.g. didMention, atMention, id) are ignored
+      return null;
   }
 }
 
@@ -382,6 +426,8 @@ function facetsToInlineContent(
       if (fs <= segStart && fe >= segEnd) {
         for (const feature of facet.features) {
           const mark = featureToMark(feature);
+          // Skip unknown features (featureToMark returns null for them)
+          if (mark === null) continue;
           // Deduplicate marks by type (+ href for links)
           const key =
             mark.type === "link"
@@ -406,11 +452,50 @@ function facetsToInlineContent(
 }
 
 /**
- * Convert a LeafletUnorderedListItem to a TipTap listItem node.
+ * Convert a canonical LeafletListItem to a TipTap listItem node.
  */
-function leafletListItemToTiptap(item: LeafletUnorderedListItem): JSONContent {
+function leafletListItemToTiptap(item: LeafletListItem): JSONContent {
+  const content = item.content;
+  // Extract text and facets from the content block
+  const text =
+    content.$type === "pub.leaflet.blocks.text" ||
+    content.$type === "pub.leaflet.blocks.header"
+      ? (content.plaintext ?? content.text ?? "")
+      : "";
+  const facets =
+    content.$type === "pub.leaflet.blocks.text" ||
+    content.$type === "pub.leaflet.blocks.header"
+      ? content.facets
+      : undefined;
+
+  const paragraphContent = facetsToInlineContent(text, facets);
+  const tiptapChildren: JSONContent[] = [
+    {
+      type: "paragraph",
+      content: paragraphContent,
+    },
+  ];
+
+  if (item.children && item.children.length > 0) {
+    tiptapChildren.push({
+      type: "bulletList",
+      content: item.children.map(leafletListItemToTiptap),
+    });
+  }
+
+  return {
+    type: "listItem",
+    content: tiptapChildren,
+  };
+}
+
+/**
+ * Convert a legacy LeafletUnorderedListItem to a TipTap listItem node.
+ * Used for backward compatibility when reading old records that used the 'items' field.
+ */
+function legacyListItemToTiptap(item: LeafletUnorderedListItem): JSONContent {
   const paragraphContent = facetsToInlineContent(item.text, item.facets);
-  const children: JSONContent[] = [
+  const tiptapChildren: JSONContent[] = [
     {
       type: "paragraph",
       content: paragraphContent,
@@ -418,15 +503,15 @@ function leafletListItemToTiptap(item: LeafletUnorderedListItem): JSONContent {
   ];
 
   if (item.items && item.items.length > 0) {
-    children.push({
+    tiptapChildren.push({
       type: "bulletList",
-      content: item.items.map(leafletListItemToTiptap),
+      content: item.items.map(legacyListItemToTiptap),
     });
   }
 
   return {
     type: "listItem",
-    content: children,
+    content: tiptapChildren,
   };
 }
 
@@ -441,7 +526,8 @@ export function leafletToTiptap(doc: LeafletLinearDocument): JSONContent {
 
     switch (block.$type) {
       case "pub.leaflet.blocks.text": {
-        const inlineContent = facetsToInlineContent(block.text, block.facets);
+        const textContent = block.plaintext ?? block.text ?? "";
+        const inlineContent = facetsToInlineContent(textContent, block.facets);
         content.push({
           type: "paragraph",
           content: inlineContent,
@@ -450,7 +536,8 @@ export function leafletToTiptap(doc: LeafletLinearDocument): JSONContent {
       }
 
       case "pub.leaflet.blocks.header": {
-        const inlineContent = facetsToInlineContent(block.text, block.facets);
+        const textContent = block.plaintext ?? block.text ?? "";
+        const inlineContent = facetsToInlineContent(textContent, block.facets);
         content.push({
           type: "heading",
           attrs: { level: block.level },
@@ -474,9 +561,11 @@ export function leafletToTiptap(doc: LeafletLinearDocument): JSONContent {
       }
 
       case "pub.leaflet.blocks.blockquote": {
-        // Split on \n to reconstruct paragraphs
-        const lines = block.text.split("\n");
-        const bytes = encoder.encode(block.text);
+        // Fix abd: prefer plaintext (canonical) over legacy text field
+        // Fix ofk: clip facets spanning newline boundaries instead of dropping them
+        const blockText = block.plaintext ?? block.text ?? "";
+        const lines = blockText.split("\n");
+        const bytes = encoder.encode(blockText);
         const paragraphs: JSONContent[] = [];
         let byteOffset = 0;
 
@@ -485,19 +574,26 @@ export function leafletToTiptap(doc: LeafletLinearDocument): JSONContent {
           const lineByteLen = encoder.encode(lineText).length;
           const lineByteEnd = byteOffset + lineByteLen;
 
-          // Extract facets that fall within this line
+          // Extract facets that overlap this line (clip to line boundaries).
+          // Facets spanning a newline boundary are included in both lines they touch,
+          // clipped to the line's byte range.
           const lineFacets: LeafletFacet[] = [];
           for (const facet of block.facets ?? []) {
             const fs = facet.index.byteStart;
             const fe = facet.index.byteEnd;
-            if (fs >= byteOffset && fe <= lineByteEnd) {
-              lineFacets.push({
-                ...facet,
-                index: {
-                  byteStart: fs - byteOffset,
-                  byteEnd: fe - byteOffset,
-                },
-              });
+            // Include if the facet overlaps this line at all
+            if (fs < lineByteEnd && fe > byteOffset) {
+              const clippedStart = Math.max(fs, byteOffset) - byteOffset;
+              const clippedEnd = Math.min(fe, lineByteEnd) - byteOffset;
+              if (clippedStart < clippedEnd) {
+                lineFacets.push({
+                  ...facet,
+                  index: {
+                    byteStart: clippedStart,
+                    byteEnd: clippedEnd,
+                  },
+                });
+              }
             }
           }
 
@@ -518,18 +614,31 @@ export function leafletToTiptap(doc: LeafletLinearDocument): JSONContent {
       }
 
       case "pub.leaflet.blocks.unorderedList": {
-        content.push({
-          type: "bulletList",
-          content: block.items.map(leafletListItemToTiptap),
-        });
+        // Canonical format uses children; fall back to legacy items for old records
+        const canonicalChildren = block.children;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const legacyItems = (block as any).items as LeafletUnorderedListItem[] | undefined;
+        if (canonicalChildren && canonicalChildren.length > 0) {
+          content.push({
+            type: "bulletList",
+            content: canonicalChildren.map(leafletListItemToTiptap),
+          });
+        } else if (legacyItems && legacyItems.length > 0) {
+          content.push({
+            type: "bulletList",
+            content: legacyItems.map(legacyListItemToTiptap),
+          });
+        }
         break;
       }
 
       case "pub.leaflet.blocks.code": {
+        // Fix abd: prefer plaintext (canonical) over legacy code field
+        const codeText = block.plaintext ?? block.code ?? "";
         content.push({
           type: "codeBlock",
-          attrs: { language: block.lang ?? null },
-          content: [{ type: "text", text: block.code }],
+          attrs: { language: block.language ?? block.lang ?? null },
+          content: [{ type: "text", text: codeText }],
         });
         break;
       }

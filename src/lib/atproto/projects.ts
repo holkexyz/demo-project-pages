@@ -6,31 +6,44 @@ import {
   type ProjectListItem,
 } from "./project-types";
 
+function isProjectRecord(value: unknown): value is { type: string } {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "type" in value &&
+    typeof (value as Record<string, unknown>).type === "string"
+  );
+}
+
 export async function listProjects(
   agent: Agent,
   did: string,
 ): Promise<ProjectListItem[]> {
-  const response = await agent.com.atproto.repo.listRecords({
-    repo: did,
-    collection: PROJECT_COLLECTION,
-    limit: 100,
-  });
-
-  return response.data.records
-    .filter((record) => {
-      const value = record.value as { type?: string };
-      return value.type === "project";
-    })
-    .map((record) => {
-      const uriParts = record.uri.split("/");
-      const rkey = uriParts[uriParts.length - 1];
-      return {
-        uri: record.uri,
-        cid: record.cid,
-        rkey,
-        value: record.value as ProjectRecord,
-      };
+  try {
+    const response = await agent.com.atproto.repo.listRecords({
+      repo: did,
+      collection: PROJECT_COLLECTION,
+      limit: 100,
     });
+
+    return response.data.records
+      .filter((record) => {
+        return isProjectRecord(record.value) && record.value.type === "project";
+      })
+      .map((record) => {
+        const uriParts = record.uri.split("/");
+        const rkey = uriParts[uriParts.length - 1];
+        return {
+          uri: record.uri,
+          cid: record.cid,
+          rkey,
+          value: record.value as ProjectRecord,
+        };
+      });
+  } catch (err) {
+    console.error("listProjects failed:", err);
+    throw err;
+  }
 }
 
 export async function getProject(
@@ -51,8 +64,20 @@ export async function getProject(
       rkey,
       value: response.data.value as ProjectRecord,
     };
-  } catch {
-    return null;
+  } catch (err) {
+    // Only return null for genuine "record not found" errors
+    if (
+      err instanceof Error &&
+      (err.message.includes("RecordNotFound") ||
+        err.message.includes("Record not found") ||
+        (typeof (err as { status?: unknown }).status === "number" &&
+          (err as { status?: number }).status === 400 &&
+          err.message.includes("not found")))
+    ) {
+      return null;
+    }
+    // Re-throw network failures, auth errors, server errors, etc.
+    throw err;
   }
 }
 
@@ -117,10 +142,19 @@ export async function deleteProject(
   });
 }
 
+const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+
 export async function uploadProjectImage(
   agent: Agent,
   file: File,
 ): Promise<BlobRef> {
+  if (!ALLOWED_TYPES.includes(file.type)) {
+    throw new Error('Invalid file type. Allowed: JPEG, PNG, WebP');
+  }
+  if (file.size > MAX_SIZE) {
+    throw new Error('File too large. Maximum size: 10MB');
+  }
   const buffer = await file.arrayBuffer();
   const response = await agent.com.atproto.repo.uploadBlob(
     new Uint8Array(buffer),

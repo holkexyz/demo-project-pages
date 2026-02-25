@@ -21,7 +21,23 @@ const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
 /**
+ * Clamp a byte offset to a valid UTF-8 character boundary.
+ * If the offset falls in the middle of a multi-byte sequence (continuation byte 0x80–0xBF),
+ * walk back to the start of that sequence to avoid U+FFFD replacement characters.
+ * Fix 0sa: prevents mid-sequence slicing.
+ */
+function clampToCharBoundary(bytes: Uint8Array, offset: number): number {
+  let o = Math.max(0, Math.min(offset, bytes.length));
+  while (o > 0 && (bytes[o] & 0xc0) === 0x80) {
+    o--;
+  }
+  return o;
+}
+
+/**
  * Render faceted text as React nodes, handling UTF-8 byte offsets correctly.
+ * Fix y5c: each node pushed to the array gets a unique key based on segment index.
+ * Fix 0sa: byte offsets are clamped to character boundaries before slicing.
  */
 function renderFacetedText(
   plaintext: string,
@@ -42,44 +58,57 @@ function renderFacetedText(
 
   const nodes: React.ReactNode[] = [];
   let cursor = 0; // byte cursor
+  let nodeIndex = 0; // unique index for React keys (fix y5c)
 
   for (let i = 0; i < sorted.length; i++) {
     const facet = sorted[i];
-    const { byteStart, byteEnd } = facet.index;
+    // Fix 0sa: clamp byte offsets to valid character boundaries
+    const byteStart = clampToCharBoundary(bytes, facet.index.byteStart);
+    const byteEnd = clampToCharBoundary(bytes, facet.index.byteEnd);
 
     // Gap before this facet
     if (cursor < byteStart) {
-      const gapBytes = bytes.slice(cursor, byteStart);
+      const safeStart = clampToCharBoundary(bytes, cursor);
+      const safeEnd = clampToCharBoundary(bytes, byteStart);
+      const gapBytes = bytes.slice(safeStart, safeEnd);
       const gapText = decoder.decode(gapBytes);
       if (gapText) {
-        nodes.push(gapText);
+        // Fix y5c: wrap in Fragment with unique key so the nodes array has stable keys
+        nodes.push(
+          <React.Fragment key={`gap-${nodeIndex++}`}>{gapText}</React.Fragment>
+        );
       }
     }
 
     // The faceted segment
-    const start = Math.max(cursor, byteStart);
-    const end = Math.min(byteEnd, totalBytes);
+    const start = clampToCharBoundary(bytes, Math.max(cursor, byteStart));
+    const end = clampToCharBoundary(bytes, Math.min(byteEnd, totalBytes));
     if (start < end) {
       const facetBytes = bytes.slice(start, end);
       const facetText = decoder.decode(facetBytes);
 
       if (facetText) {
         // Determine what wrapping elements to apply based on features
+        // Fix y5c: use a stable unique key combining segment index and feature index
+        const facetKey = nodeIndex++;
         let node: React.ReactNode = facetText;
 
         // Apply features in reverse order (innermost first)
-        for (const feature of [...facet.features].reverse()) {
+        const reversedFeatures = [...facet.features].reverse();
+        for (let fi = 0; fi < reversedFeatures.length; fi++) {
+          const feature = reversedFeatures[fi];
+          const featureKey = `f${facetKey}-${fi}`;
           switch (feature.$type) {
             case "pub.leaflet.richtext.facet#bold":
-              node = <strong key={`bold-${i}`}>{node}</strong>;
+              node = <strong key={featureKey}>{node}</strong>;
               break;
             case "pub.leaflet.richtext.facet#italic":
-              node = <em key={`em-${i}`}>{node}</em>;
+              node = <em key={featureKey}>{node}</em>;
               break;
             case "pub.leaflet.richtext.facet#code":
               node = (
                 <code
-                  key={`code-${i}`}
+                  key={featureKey}
                   className="bg-gray-50 px-1 py-0.5 rounded text-sm font-mono"
                 >
                   {node}
@@ -87,14 +116,14 @@ function renderFacetedText(
               );
               break;
             case "pub.leaflet.richtext.facet#strikethrough":
-              node = <del key={`del-${i}`}>{node}</del>;
+              node = <del key={featureKey}>{node}</del>;
               break;
             case "pub.leaflet.richtext.facet#underline":
-              node = <u key={`u-${i}`}>{node}</u>;
+              node = <u key={featureKey}>{node}</u>;
               break;
             case "pub.leaflet.richtext.facet#highlight":
               node = (
-                <mark key={`mark-${i}`} className="bg-yellow-100">
+                <mark key={featureKey} className="bg-yellow-100">
                   {node}
                 </mark>
               );
@@ -102,7 +131,7 @@ function renderFacetedText(
             case "pub.leaflet.richtext.facet#link":
               node = (
                 <a
-                  key={`link-${i}`}
+                  key={featureKey}
                   href={feature.uri}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -117,7 +146,10 @@ function renderFacetedText(
           }
         }
 
-        nodes.push(node);
+        // Fix y5c: wrap in Fragment with unique key so the nodes array has stable keys
+        nodes.push(
+          <React.Fragment key={`seg-${facetKey}`}>{node}</React.Fragment>
+        );
       }
     }
 
@@ -126,10 +158,13 @@ function renderFacetedText(
 
   // Remaining text after last facet
   if (cursor < totalBytes) {
-    const remainingBytes = bytes.slice(cursor);
+    const safeStart = clampToCharBoundary(bytes, cursor);
+    const remainingBytes = bytes.slice(safeStart);
     const remainingText = decoder.decode(remainingBytes);
     if (remainingText) {
-      nodes.push(remainingText);
+      nodes.push(
+        <React.Fragment key={`tail-${nodeIndex++}`}>{remainingText}</React.Fragment>
+      );
     }
   }
 
@@ -214,6 +249,7 @@ function renderBlock(
 ): React.ReactNode {
   switch (block.$type) {
     case "pub.leaflet.blocks.text": {
+      // Fix abd: prefer plaintext (canonical) over legacy text field
       const text = block.plaintext ?? block.text ?? "";
       return (
         <p key={index} className="text-body text-gray-700 mb-4">
@@ -223,6 +259,7 @@ function renderBlock(
     }
 
     case "pub.leaflet.blocks.header": {
+      // Fix abd: prefer plaintext (canonical) over legacy text field
       const text = block.plaintext ?? block.text ?? "";
       const level = block.level ?? 1;
       const content = renderFacetedText(text, block.facets);
@@ -281,6 +318,7 @@ function renderBlock(
     }
 
     case "pub.leaflet.blocks.blockquote": {
+      // Fix abd: prefer plaintext (canonical) over legacy text field
       const text = block.plaintext ?? block.text ?? "";
       return (
         <blockquote
@@ -294,6 +332,8 @@ function renderBlock(
 
     case "pub.leaflet.blocks.unorderedList": {
       // Support both canonical (children) and legacy (items) formats
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const legacyItems = (block as any).items as LeafletUnorderedListItem[] | undefined;
       if (block.children && block.children.length > 0) {
         return (
           <ul key={index} className="list-disc pl-6 my-4 space-y-1 text-gray-700">
@@ -302,10 +342,10 @@ function renderBlock(
             )}
           </ul>
         );
-      } else if (block.items && block.items.length > 0) {
+      } else if (legacyItems && legacyItems.length > 0) {
         return (
           <ul key={index} className="list-disc pl-6 my-4 space-y-1 text-gray-700">
-            {block.items.map((item, ci) =>
+            {legacyItems.map((item, ci) =>
               renderLegacyListItem(item, pdsUrl, did, ci)
             )}
           </ul>
@@ -315,6 +355,7 @@ function renderBlock(
     }
 
     case "pub.leaflet.blocks.code": {
+      // Fix abd: prefer plaintext (canonical) over legacy code field
       const code = block.plaintext ?? block.code ?? "";
       const lang = block.language ?? block.lang;
       return (

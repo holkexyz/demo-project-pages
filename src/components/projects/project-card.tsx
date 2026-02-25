@@ -47,8 +47,20 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
   }
 
   return (
-    <Card hoverable className="cursor-pointer p-0 overflow-hidden" >
-      <div onClick={onClick} className="flex flex-col h-full">
+    <Card hoverable className="cursor-pointer p-0 overflow-hidden">
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={onClick}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onClick();
+          }
+        }}
+        aria-label={value.title}
+        className="flex flex-col h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
+      >
         {/* Banner / thumbnail */}
         <div className="relative w-full" style={{ aspectRatio: "16/9" }}>
           {bannerUrl ? (

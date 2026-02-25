@@ -125,7 +125,7 @@ export function ProjectEditor({
 
   // Update content when prop changes (e.g., when loading existing project)
   useEffect(() => {
-    if (!editor) return;
+    if (!editor || editor.isDestroyed) return;
     if (!content) return;
     const currentJson = editor.getJSON();
     const newJson = leafletToTiptap(content);
@@ -133,8 +133,7 @@ export function ProjectEditor({
     if (JSON.stringify(currentJson) !== JSON.stringify(newJson)) {
       editor.commands.setContent(newJson, false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [content]);
+  }, [editor, content]);
 
   return (
     <div className="project-editor border border-[var(--color-light-gray)] rounded-lg overflow-hidden">

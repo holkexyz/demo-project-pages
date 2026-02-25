@@ -112,31 +112,29 @@ export async function getPublicRecord(
 
   const url = `${pdsUrl}/xrpc/com.atproto.repo.getRecord?${params.toString()}`;
 
-  try {
-    const response = await fetch(url);
+  const response = await fetch(url);
 
-    if (response.status === 404) {
-      return null;
-    }
-
-    if (!response.ok) {
-      return null;
-    }
-
-    const data = (await response.json()) as {
-      uri: string;
-      cid: string;
-      value: unknown;
-    };
-
-    return {
-      uri: data.uri,
-      cid: data.cid,
-      value: data.value,
-    };
-  } catch {
+  if (response.status === 404) {
     return null;
   }
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to fetch record: HTTP ${response.status}`
+    );
+  }
+
+  const data = (await response.json()) as {
+    uri: string;
+    cid: string;
+    value: unknown;
+  };
+
+  return {
+    uri: data.uri,
+    cid: data.cid,
+    value: data.value,
+  };
 }
 
 /**

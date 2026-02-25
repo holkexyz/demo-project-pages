@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 
 export async function GET(request: NextRequest) {
-  const origin = request.headers.get("x-forwarded-host")
-    ? `https://${request.headers.get("x-forwarded-host")}`
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const origin = forwardedHost && /^[a-zA-Z0-9.-]+(:\d+)?$/.test(forwardedHost)
+    ? `https://${forwardedHost}`
     : request.nextUrl.origin
 
   const clientId = `${origin}/.well-known/oauth-client-metadata`

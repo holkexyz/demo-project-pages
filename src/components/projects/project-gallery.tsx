@@ -16,6 +16,7 @@ export interface ProjectGalleryProps {
   did: string;
   onProjectClick: (rkey: string) => void;
   onCreateProject: () => void;
+  onRetry?: () => void;
 }
 
 const ProjectGallery: React.FC<ProjectGalleryProps> = ({
@@ -26,6 +27,7 @@ const ProjectGallery: React.FC<ProjectGalleryProps> = ({
   did,
   onProjectClick,
   onCreateProject,
+  onRetry,
 }) => {
   return (
     <div>
