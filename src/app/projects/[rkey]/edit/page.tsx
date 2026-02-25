@@ -12,6 +12,7 @@ import {
   uploadProjectImage,
   getProjectImageUrl,
 } from "@/lib/atproto/projects";
+import { extractCid } from "@/lib/atproto/blob-utils";
 import type {
   LeafletLinearDocument,
   ProjectListItem,
@@ -158,16 +159,14 @@ function EditProjectContent() {
   }
 
   // Resolve existing banner URL for preview
-  const existingBannerUrl =
+  const bannerCid =
     project.value.banner &&
-    project.value.banner.$type === "org.hypercerts.defs#largeImage" &&
-    pdsUrl &&
-    did
-      ? getProjectImageUrl(
-          pdsUrl,
-          did,
-          (project.value.banner as { $type: "org.hypercerts.defs#largeImage"; image: BlobRef }).image.ref.$link
-        )
+    project.value.banner.$type === "org.hypercerts.defs#largeImage"
+      ? extractCid((project.value.banner as { image: BlobRef }).image)
+      : null;
+  const existingBannerUrl =
+    bannerCid && pdsUrl && did
+      ? getProjectImageUrl(pdsUrl, did, bannerCid)
       : project.value.banner &&
         project.value.banner.$type === "org.hypercerts.defs#uri"
       ? (project.value.banner as { $type: "org.hypercerts.defs#uri"; uri: string }).uri

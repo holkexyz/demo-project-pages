@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useCallback, useState } from "react";
+import { useEffect, useCallback, useState, useRef } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import type { JSONContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -84,6 +84,10 @@ export function ProjectEditor({
 }: ProjectEditorProps) {
   const [imageError, setImageError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  // Track whether the latest content change came from the editor itself.
+  // When true, the useEffect should NOT call setContent (which would replace
+  // working blob: preview URLs with PDS URLs that may not work yet).
+  const isInternalChange = useRef(false);
 
   // Use a ref-stable callback for image upload that doesn't depend on editor
   const onImageUploadRef = useCallback(
@@ -145,6 +149,7 @@ export function ProjectEditor({
     onUpdate: ({ editor }) => {
       const json = editor.getJSON();
       const leaflet = tiptapToLeaflet(json);
+      isInternalChange.current = true;
       onChange(leaflet);
     },
     editorProps: {
@@ -210,8 +215,15 @@ export function ProjectEditor({
     }
   }, [editor, editable]);
 
-  // Update content when prop changes (e.g., when loading existing project)
+  // Update content when prop changes externally (e.g., when loading existing project).
+  // Skip when the change originated from the editor itself (onUpdate → onChange → here)
+  // because the round-trip through Leaflet serialization loses blob: preview URLs,
+  // replacing them with PDS URLs that may not work for unsaved blobs.
   useEffect(() => {
+    if (isInternalChange.current) {
+      isInternalChange.current = false;
+      return;
+    }
     if (!editor || editor.isDestroyed) return;
     if (!content) return;
     const currentJson = editor.getJSON();
