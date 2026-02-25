@@ -9,6 +9,7 @@ import type {
   LeafletUnorderedListItem,
 } from "@/lib/atproto/project-types";
 import { getProjectImageUrl } from "@/lib/atproto/projects";
+import { extractCid } from "@/lib/atproto/blob-utils";
 
 /**
  * Convert any YouTube URL to an embeddable nocookie URL.
@@ -320,7 +321,7 @@ function renderBlock(
     }
 
     case "pub.leaflet.blocks.image": {
-      const rawCid = block.image.ref.$link;
+      const rawCid = extractCid(block.image) ?? "";
       // If the CID is a blob: URL or http URL (not a real CID), use it directly
       // Real CIDs are base32/base58 strings like "bafkrei..."
       const isRealCid = rawCid && !rawCid.includes(":") && !rawCid.includes("/");

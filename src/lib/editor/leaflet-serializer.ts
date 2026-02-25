@@ -1,4 +1,5 @@
 import type { JSONContent } from "@tiptap/react";
+import { extractCid } from "@/lib/atproto/blob-utils";
 import type {
   LeafletLinearDocument,
   LeafletBlockWrapper,
@@ -582,7 +583,7 @@ export function leafletToTiptap(doc: LeafletLinearDocument): JSONContent {
 
       case "pub.leaflet.blocks.image": {
         // The image src will be constructed from the BlobRef by the editor component
-        const cid = block.image.ref.$link;
+        const cid = extractCid(block.image) ?? "";
         content.push({
           type: "image",
           attrs: {
