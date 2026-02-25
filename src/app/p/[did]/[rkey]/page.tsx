@@ -22,8 +22,8 @@ export default function PublicProjectPage() {
   const params = useParams();
   const auth = useAuth();
 
-  const did = typeof params?.did === "string" ? params.did : "";
-  const rkey = typeof params?.rkey === "string" ? params.rkey : "";
+  const did = typeof params?.did === "string" ? decodeURIComponent(params.did) : "";
+  const rkey = typeof params?.rkey === "string" ? decodeURIComponent(params.rkey) : "";
 
   const [pdsUrl, setPdsUrl] = useState<string | null>(null);
   const [project, setProject] = useState<ProjectRecord | null>(null);
