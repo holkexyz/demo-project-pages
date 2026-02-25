@@ -17,7 +17,7 @@ import ProviderRedirectOverlay from "@/components/ui/provider-redirect-overlay";
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
 
-const PDS_URL = process.env.NEXT_PUBLIC_PDS_URL || "https://otp.certs.network";
+const PDS_URL = process.env.NEXT_PUBLIC_PDS_URL || "https://epds1.test.certified.app/";
 
 // Full scope for all auth flows — matches certified-app-v2
 const AUTH_SCOPE = "atproto transition:generic identity:handle account:email";

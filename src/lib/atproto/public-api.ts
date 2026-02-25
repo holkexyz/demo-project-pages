@@ -92,7 +92,7 @@ export async function resolveDidToPds(did: string): Promise<string> {
  * Fetch a single AT Protocol record from a public XRPC endpoint.
  * No authentication required.
  *
- * @param pdsUrl - The PDS base URL (e.g. "https://otp.certs.network")
+ * @param pdsUrl - The PDS base URL (e.g. "https://epds1.test.certified.app/")
  * @param did - The repo DID
  * @param collection - The NSID collection (e.g. "app.certified.actor.profile")
  * @param rkey - The record key

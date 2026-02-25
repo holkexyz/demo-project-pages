@@ -1,6 +1,6 @@
 import { BrowserOAuthClient } from "@atproto/oauth-client-browser"
 
-const PDS_URL = process.env.NEXT_PUBLIC_PDS_URL || "https://otp.certs.network"
+const PDS_URL = process.env.NEXT_PUBLIC_PDS_URL || "https://epds1.test.certified.app/"
 
 let clientInstance: BrowserOAuthClient | null = null
 
