@@ -174,8 +174,7 @@ function listItemToLeaflet(item: JSONContent): LeafletListItem {
 
   const contentBlock = {
     $type: "pub.leaflet.blocks.text" as const,
-    plaintext: text,  // canonical
-    text,             // backward compat (remove in future)
+    plaintext: text,
     ...(facets.length > 0 ? { facets } : {}),
   };
 
@@ -203,8 +202,7 @@ export function tiptapToLeaflet(doc: JSONContent): LeafletLinearDocument {
         const { text, facets } = extractTextAndFacets(node.content);
         block = {
           $type: "pub.leaflet.blocks.text",
-          plaintext: text,  // canonical
-          text,             // backward compat (remove in future)
+          plaintext: text,
           ...(facets.length > 0 ? { facets } : {}),
         };
         break;
@@ -215,8 +213,7 @@ export function tiptapToLeaflet(doc: JSONContent): LeafletLinearDocument {
         const { text, facets } = extractTextAndFacets(node.content);
         block = {
           $type: "pub.leaflet.blocks.header",
-          plaintext: text,  // canonical
-          text,             // backward compat (remove in future)
+          plaintext: text,
           level,
           ...(facets.length > 0 ? { facets } : {}),
         };
@@ -279,8 +276,7 @@ export function tiptapToLeaflet(doc: JSONContent): LeafletLinearDocument {
         const combinedText = parts.join("\n");
         block = {
           $type: "pub.leaflet.blocks.blockquote",
-          plaintext: combinedText,  // canonical
-          text: combinedText,       // backward compat (remove in future)
+          plaintext: combinedText,
           ...(allFacets.length > 0 ? { facets: allFacets } : {}),
         };
         break;
