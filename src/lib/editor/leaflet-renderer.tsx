@@ -405,7 +405,7 @@ function renderBlock(
       const embedUrl = toYouTubeEmbedUrl(rawUrl) ?? rawUrl;
 
       return (
-        <div key={index} className="my-4 aspect-video">
+        <div key={index} className="my-4 w-full aspect-video">
           <iframe
             src={embedUrl}
             className="w-full h-full rounded-lg"
