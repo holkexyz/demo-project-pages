@@ -13,7 +13,7 @@ import ProfileView from "@/components/profile/profile-view";
 import ProjectGallery from "@/components/projects/project-gallery";
 
 export default function HomeClient() {
-  const { isLoading, session, did, agent, pdsUrl, openSignIn, openSignUp } = useAuth();
+  const { isLoading, session, did, agent, pdsUrl, openSignUp } = useAuth();
   const { profile, isLoading: profileLoading, error: profileError, refetch: refetchProfile, avatarUrl, bannerUrl } = useProfile();
   const { projects, isLoading: projectsLoading, error: projectsError, refetch: refetchProjects } = useProjects(agent, did);
   const { setVariant } = useNavbarVariant();
@@ -22,13 +22,20 @@ export default function HomeClient() {
   useEffect(() => {
     if (!session && !isLoading) {
       setVariant("transparent");
-    } else if (session) {
-      setVariant("default");
     }
     return () => {
       setVariant("default");
     };
   }, [session, isLoading, setVariant]);
+
+  useEffect(() => {
+    if (!isLoading && !session) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => { document.body.style.overflow = ""; };
+  }, [isLoading, session]);
 
   if (isLoading) {
     return (
@@ -46,75 +53,73 @@ export default function HomeClient() {
 
   if (session) {
     return (
-      <div className="max-w-5xl mx-auto px-6 py-8 pt-[56px]">
-        {profileLoading ? (
-          <div className="flex items-center justify-center min-h-[400px]">
-            <LoadingSpinner size="md" />
-          </div>
-        ) : profileError ? (
-          <div className="flex items-center justify-center min-h-[400px]">
-            <ErrorMessage message={profileError} onRetry={refetchProfile} />
-          </div>
-        ) : did ? (
-          <>
-            <ProfileView
-              profile={profile}
-              did={did}
-              avatarUrl={avatarUrl}
-              bannerUrl={bannerUrl}
-            />
-            <hr className="border-gray-200 my-8" />
-            <ProjectGallery
-              projects={projects}
-              isLoading={projectsLoading}
-              error={projectsError}
-              pdsUrl={pdsUrl || ""}
-              did={did}
-              onProjectClick={(rkey) => router.push(`/projects/${rkey}`)}
-              onCreateProject={() => router.push("/projects/new")}
-              onRetry={refetchProjects}
-            />
-          </>
-        ) : null}
+      <div className="app-page">
+        <div className="app-page__inner">
+          {profileLoading ? (
+            <div className="flex items-center justify-center min-h-[400px]">
+              <LoadingSpinner size="md" />
+            </div>
+          ) : profileError ? (
+            <div className="flex items-center justify-center min-h-[400px]">
+              <ErrorMessage message={profileError} onRetry={refetchProfile} />
+            </div>
+          ) : did ? (
+            <>
+              <ProfileView
+                profile={profile}
+                did={did}
+                avatarUrl={avatarUrl}
+                bannerUrl={bannerUrl}
+              />
+              <hr className="border-gray-200 my-8" />
+              <ProjectGallery
+                projects={projects}
+                isLoading={projectsLoading}
+                error={projectsError}
+                pdsUrl={pdsUrl || ""}
+                did={did}
+                onProjectClick={(rkey) => router.push(`/projects/${rkey}`)}
+                onCreateProject={() => router.push("/projects/new")}
+                onRetry={refetchProjects}
+              />
+            </>
+          ) : null}
+        </div>
       </div>
     );
   }
 
-  // Not authenticated — Landing hero
+  // Not authenticated - Landing page
   return (
     <section className="hero">
       <div className="hero__bg" aria-hidden="true" />
       <div className="hero__inner">
-        <div className="hero-reveal">
-          <img
-            src="/assets/certified_brandmark.svg"
-            alt="Certified brandmark"
-            style={{ width: 80, height: 80, margin: "0 auto 32px" }}
-          />
-        </div>
         <h1 className="hero__title hero-reveal">
-          Your Project Portfolio
+          One account.<br />Any app.
         </h1>
         <p className="hero__subtitle hero-reveal">
-          Create, share, and showcase your impact projects
+          Your identity and data \u2014 everywhere you go.
         </p>
         <div className="hero-reveal">
           <div className="hero__actions">
             <button className="hero__btn-primary" onClick={openSignUp}>
-              Get Started
+              Create your Certified ID
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M7.5 4.5L13 10m0 0l-5.5 5.5M13 10H3" />
+              </svg>
             </button>
-            <button className="hero__btn-secondary" onClick={openSignIn}>
-              Sign In
-            </button>
+            <Link href="/terms" className="hero__btn-secondary">
+              Learn more
+            </Link>
           </div>
         </div>
       </div>
       <footer className="hero__footer">
         <div className="hero__footer-inner">
-          <p>&copy; 2026 Demo Project Pages. All rights reserved.</p>
+          <p>&copy; 2026 Certified. All rights reserved.</p>
           <div className="hero__footer-links">
             <Link href="/terms">Terms</Link>
-            <Link href="/privacy">Privacy</Link>
+            <Link href="/privacy">Policy</Link>
           </div>
         </div>
       </footer>

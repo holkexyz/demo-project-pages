@@ -8,7 +8,7 @@ import { useProfile } from "@/hooks/use-profile";
 import Avatar from "@/components/ui/avatar";
 
 const Navbar: React.FC = () => {
-  const { isLoading, session, did, openSignIn, openSignUp, signOut } = useAuth();
+  const { isLoading, session, did, openSignIn, signOut } = useAuth();
   const { variant } = useNavbarVariant();
   const { profile, avatarUrl } = useProfile();
   const [scrolled, setScrolled] = useState(false);
@@ -52,26 +52,21 @@ const Navbar: React.FC = () => {
           />
         </Link>
 
-        {session && (
-          <div className="navbar__center">
-            <Link
-              href="/"
-              className={`font-mono text-xs uppercase tracking-wider px-3 py-1.5 rounded transition-colors duration-150 ${
-                isTransparent
-                  ? "text-white/70 hover:text-white"
-                  : "text-navy/70 hover:text-navy"
-              }`}
-            >
-              My Projects
-            </Link>
-          </div>
-        )}
-
         <div className="navbar__right">
           {isLoading ? (
             <div className="w-20" />
           ) : session ? (
             <>
+              <Link
+                href="/"
+                className={`font-mono text-xs uppercase tracking-wider px-3 py-1.5 rounded transition-colors duration-150 ${
+                  isTransparent
+                    ? "text-white/70 hover:text-white"
+                    : "text-[var(--color-dark-gray)] hover:text-[var(--color-navy)]"
+                }`}
+              >
+                My Projects
+              </Link>
               <Link
                 href="/"
                 className="flex items-center hover:opacity-80 transition-opacity duration-150"
@@ -90,28 +85,16 @@ const Navbar: React.FC = () => {
               </button>
             </>
           ) : (
-            <>
-              <button
-                onClick={openSignIn}
-                className={`font-mono text-xs uppercase tracking-wider px-4 py-2 rounded transition-all duration-150 ${
-                  isTransparent
-                    ? "text-white/70 border border-white/20 hover:border-white/40 hover:text-white"
-                    : "text-navy border border-navy/20 hover:border-navy/40 bg-transparent"
-                }`}
-              >
-                Sign in
-              </button>
-              <button
-                onClick={openSignUp}
-                className={`font-mono text-xs uppercase tracking-wider px-4 py-2 rounded transition-all duration-150 ${
-                  isTransparent
-                    ? "bg-white text-navy hover:bg-white/90"
-                    : "bg-navy text-white hover:bg-navy/90"
-                }`}
-              >
-                Sign up
-              </button>
-            </>
+            <button
+              onClick={openSignIn}
+              className={`font-mono text-xs uppercase tracking-wider px-4 py-2 rounded transition-all duration-150 ${
+                isTransparent
+                  ? "text-white/70 border border-white/20 hover:border-white/40 hover:text-white"
+                  : "text-navy border border-navy/20 hover:border-navy/40 bg-transparent"
+              }`}
+            >
+              Sign in
+            </button>
           )}
         </div>
       </div>

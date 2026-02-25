@@ -14,22 +14,24 @@ export default function OAuthCallbackPage() {
         const client = getOAuthClient()
         const isInIframe = window.parent !== window
 
-        const result = await client.init()
-        if (cancelled) return
-
         if (isInIframe) {
-          if (result?.session) {
-            window.parent.postMessage(
-              { type: "oauth-callback-complete", sub: result.session.sub },
-              window.location.origin
-            )
-          } else {
-            window.parent.postMessage(
-              { type: "oauth-callback-error", error: "No session received" },
-              window.location.origin
-            )
+          const params = client.readCallbackParams()
+          if (!params) {
+            setError("No OAuth parameters found.")
+            return
           }
+          const redirectUri = client.findRedirectUrl()
+          const result = await client.initCallback(params, redirectUri)
+
+          if (cancelled) return
+
+          window.parent.postMessage(
+            { type: "oauth-callback-complete", sub: result.session.sub },
+            window.location.origin
+          )
         } else {
+          const result = await client.init()
+          if (cancelled) return
           if (result?.session) {
             window.location.replace("/")
           } else {

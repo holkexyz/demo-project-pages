@@ -4,7 +4,6 @@ import React, {
   createContext,
   useContext,
   useEffect,
-  useRef,
   useState,
   useCallback,
 } from "react";
@@ -30,33 +29,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState<"sign-in" | "sign-up">("sign-in");
   const [isRedirectingToProvider, setIsRedirectingToProvider] = useState(false);
-  const redirectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Helper: start redirect overlay with a 30s escape-hatch timeout
-  const startRedirectOverlay = useCallback(() => {
-    if (redirectTimeoutRef.current) clearTimeout(redirectTimeoutRef.current);
-    setIsRedirectingToProvider(true);
-    redirectTimeoutRef.current = setTimeout(() => {
-      setIsRedirectingToProvider(false);
-      setError("Sign-in is taking too long. Please try again.");
-    }, 30000);
-  }, []);
-
-  // Helper: clear redirect overlay and its timeout
-  const clearRedirectOverlay = useCallback(() => {
-    if (redirectTimeoutRef.current) {
-      clearTimeout(redirectTimeoutRef.current);
-      redirectTimeoutRef.current = null;
-    }
-    setIsRedirectingToProvider(false);
-  }, []);
-
-  // Clear timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (redirectTimeoutRef.current) clearTimeout(redirectTimeoutRef.current);
-    };
-  }, []);
 
   // Initialize auth on mount
   useEffect(() => {
@@ -107,14 +79,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setDid(oauthSession.did);
         const resolvedPdsUrl = await resolvePdsUrl(oauthSession.did);
         setPdsUrl(resolvedPdsUrl);
-        // Only close modal on success — keep it open on error so user sees the message
-        setIsModalOpen(false);
       } catch (err) {
         console.error("Session restore error:", err);
         setError(
           err instanceof Error ? err.message : "Failed to complete sign in",
         );
-        // Modal stays open so the user can see the error and retry
+      } finally {
+        setIsModalOpen(false);
       }
     };
 
@@ -125,13 +96,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Listen for switch-provider postMessage from PDS OAuth UI iframe
   useEffect(() => {
     const handleSwitchProvider = async (event: MessageEvent) => {
-      if (event.origin !== window.location.origin) return;
       if (event.data?.type !== "switch-provider") return;
       const input = event.data.input;
       if (!input || typeof input !== "string") return;
 
       // Show the full-screen overlay before closing the modal
-      startRedirectOverlay();
+      setIsRedirectingToProvider(true);
       setIsModalOpen(false);
 
       try {
@@ -170,7 +140,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (err) {
         console.error("External provider sign-in error:", err);
-        clearRedirectOverlay();
+        setIsRedirectingToProvider(false);
         setError(
           err instanceof Error
             ? err.message
@@ -181,7 +151,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     window.addEventListener("message", handleSwitchProvider);
     return () => window.removeEventListener("message", handleSwitchProvider);
-  }, [startRedirectOverlay, clearRedirectOverlay]);
+  }, []);
 
   const openSignIn = useCallback(() => {
     setAuthMode("sign-in");
@@ -226,7 +196,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const submitHandle = useCallback(async (handle: string) => {
     try {
       setError(null);
-      startRedirectOverlay();
+      setIsRedirectingToProvider(true);
       setIsModalOpen(false);
       const client = getOAuthClient();
       const trimmedHandle = handle.trim();
@@ -263,7 +233,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (err) {
       console.error("Handle sign-in error:", err);
-      clearRedirectOverlay();
+      setIsRedirectingToProvider(false);
       setError(
         err instanceof Error
           ? err.message
@@ -271,12 +241,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       );
       setIsModalOpen(true);
     }
-  }, [startRedirectOverlay, clearRedirectOverlay]);
+  }, []);
 
   const signOut = useCallback(async () => {
     try {
       setError(null);
-      clearRedirectOverlay();
       if (session) {
         await session.signOut();
       }
@@ -288,7 +257,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error("Sign out error:", err);
       setError(err instanceof Error ? err.message : "Failed to sign out");
     }
-  }, [session, clearRedirectOverlay]);
+  }, [session]);
 
   const value: AuthState = {
     isLoading,
