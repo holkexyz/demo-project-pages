@@ -19,10 +19,8 @@ const AuthContext = createContext<AuthState | undefined>(undefined);
 
 const PDS_URL = process.env.NEXT_PUBLIC_PDS_URL || "https://otp.certs.network";
 
-// ePDS (otp.certs.network) rejects transition:generic, so use "atproto" for email/OTP flow.
-// External providers (Bluesky etc.) need "atproto transition:generic" for write access.
-const EPDS_SCOPE = "atproto";
-const EXTERNAL_SCOPE = "atproto transition:generic";
+// Full scope for all auth flows — matches certified-app-v2
+const AUTH_SCOPE = "atproto transition:generic identity:handle account:email";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
@@ -118,26 +116,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           trimmedInput.startsWith("https://")
         ) {
           await client.signIn(trimmedInput, {
-            scope: EXTERNAL_SCOPE,
+            scope: AUTH_SCOPE,
           });
           return;
         }
 
         if (trimmedInput.startsWith("did:")) {
           await client.signIn(trimmedInput, {
-            scope: EXTERNAL_SCOPE,
+            scope: AUTH_SCOPE,
           });
           return;
         }
 
         try {
           await client.signIn(trimmedInput, {
-            scope: EXTERNAL_SCOPE,
+            scope: AUTH_SCOPE,
           });
         } catch (handleErr) {
           try {
             await client.signIn("https://" + trimmedInput, {
-              scope: EXTERNAL_SCOPE,
+              scope: AUTH_SCOPE,
             });
           } catch {
             throw handleErr;
@@ -182,7 +180,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const client = getOAuthClient();
       const prompt = authMode === "sign-up" ? "create" : "login";
       const url = await client.authorize(PDS_URL, {
-        scope: EPDS_SCOPE,
+        scope: AUTH_SCOPE,
         display: "page",
         prompt,
       });
@@ -211,26 +209,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         trimmedHandle.startsWith("https://")
       ) {
         await client.signIn(trimmedHandle, {
-          scope: EXTERNAL_SCOPE,
+          scope: AUTH_SCOPE,
         });
         return;
       }
 
       if (trimmedHandle.startsWith("did:")) {
         await client.signIn(trimmedHandle, {
-          scope: EXTERNAL_SCOPE,
+          scope: AUTH_SCOPE,
         });
         return;
       }
 
       try {
         await client.signIn(trimmedHandle, {
-          scope: EXTERNAL_SCOPE,
+          scope: AUTH_SCOPE,
         });
       } catch (handleErr) {
         try {
           await client.signIn("https://" + trimmedHandle, {
-            scope: EXTERNAL_SCOPE,
+            scope: AUTH_SCOPE,
           });
         } catch {
           throw handleErr;
