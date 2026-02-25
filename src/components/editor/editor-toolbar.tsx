@@ -117,7 +117,7 @@ export function EditorToolbar({ editor, onImageUpload, isUploading: isExternalUp
         .setImage({
           src: url,
           // @ts-expect-error — custom attr
-          cid: blobRef.ref.$link,
+          cid: String(blobRef.ref),
         })
         .run();
     } catch (err) {

@@ -99,7 +99,7 @@ export function ProjectEditor({
               const { schema } = view.state;
               const node = schema.nodes.image.create({
                 src: url,
-                cid: blobRef.ref.$link,
+                cid: String(blobRef.ref),
               });
               const transaction = view.state.tr.replaceSelectionWith(node);
               view.dispatch(transaction);
@@ -124,7 +124,7 @@ export function ProjectEditor({
                 const { schema } = view.state;
                 const node = schema.nodes.image.create({
                   src: url,
-                  cid: blobRef.ref.$link,
+                  cid: String(blobRef.ref),
                 });
                 const transaction = view.state.tr.replaceSelectionWith(node);
                 view.dispatch(transaction);

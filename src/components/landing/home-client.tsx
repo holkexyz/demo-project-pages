@@ -5,16 +5,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useNavbarVariant } from "@/lib/navbar-context";
-import { useProfile } from "@/hooks/use-profile";
 import { useProjects } from "@/hooks/use-projects";
-import LoadingSpinner from "@/components/ui/loading-spinner";
-import ErrorMessage from "@/components/ui/error-message";
-import ProfileView from "@/components/profile/profile-view";
 import ProjectGallery from "@/components/projects/project-gallery";
 
 export default function HomeClient() {
   const { isLoading, session, did, agent, pdsUrl, openSignUp } = useAuth();
-  const { profile, isLoading: profileLoading, error: profileError, refetch: refetchProfile, avatarUrl, bannerUrl } = useProfile();
   const { projects, isLoading: projectsLoading, error: projectsError, refetch: refetchProjects } = useProjects(agent, did);
   const { setVariant } = useNavbarVariant();
   const router = useRouter();
@@ -55,34 +50,17 @@ export default function HomeClient() {
     return (
       <div className="app-page">
         <div className="app-page__inner">
-          {profileLoading ? (
-            <div className="flex items-center justify-center min-h-[400px]">
-              <LoadingSpinner size="md" />
-            </div>
-          ) : profileError ? (
-            <div className="flex items-center justify-center min-h-[400px]">
-              <ErrorMessage message={profileError} onRetry={refetchProfile} />
-            </div>
-          ) : did ? (
-            <>
-              <ProfileView
-                profile={profile}
-                did={did}
-                avatarUrl={avatarUrl}
-                bannerUrl={bannerUrl}
-              />
-              <hr className="border-gray-200 my-8" />
-              <ProjectGallery
-                projects={projects}
-                isLoading={projectsLoading}
-                error={projectsError}
-                pdsUrl={pdsUrl || ""}
-                did={did}
-                onProjectClick={(rkey) => router.push(`/projects/${rkey}`)}
-                onCreateProject={() => router.push("/projects/new")}
-                onRetry={refetchProjects}
-              />
-            </>
+          {did ? (
+            <ProjectGallery
+              projects={projects}
+              isLoading={projectsLoading}
+              error={projectsError}
+              pdsUrl={pdsUrl || ""}
+              did={did}
+              onProjectClick={(rkey) => router.push(`/projects/${rkey}`)}
+              onCreateProject={() => router.push("/projects/new")}
+              onRetry={refetchProjects}
+            />
           ) : null}
         </div>
       </div>
