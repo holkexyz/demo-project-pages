@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Upload, ImageIcon } from "lucide-react";
 import type { BlobRef } from "@atproto/api";
@@ -55,6 +55,16 @@ export function ProjectForm({
   const [titleError, setTitleError] = useState<string | null>(null);
 
   const bannerInputRef = useRef<HTMLInputElement>(null);
+  const shortDescRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-resize short description textarea to fit content (no scrolling)
+  useEffect(() => {
+    const el = shortDescRef.current;
+    if (el) {
+      el.style.height = "auto";
+      el.style.height = el.scrollHeight + "px";
+    }
+  }, [shortDescription]);
 
   const handleBannerClick = useCallback(() => {
     bannerInputRef.current?.click();
@@ -190,6 +200,7 @@ export function ProjectForm({
         {/* Short description input */}
         <div>
           <textarea
+            ref={shortDescRef}
             value={shortDescription}
             onChange={(e) => {
               if (e.target.value.length <= 300) {
@@ -198,8 +209,8 @@ export function ProjectForm({
             }}
             placeholder="A brief summary of your project"
             maxLength={300}
-            rows={2}
-            className="w-full text-base bg-transparent border-none border-b border-transparent focus:border-b focus:border-[var(--color-light-gray)] outline-none text-[var(--color-dark-gray)] placeholder:text-[var(--color-mid-gray)] pb-1 transition-colors duration-150 resize-none"
+            rows={1}
+            className="w-full text-base bg-transparent border-none border-b border-transparent focus:border-b focus:border-[var(--color-light-gray)] outline-none text-[var(--color-dark-gray)] placeholder:text-[var(--color-mid-gray)] pb-1 transition-colors duration-150 resize-none overflow-hidden"
             aria-label="Short description"
           />
           <div className="flex justify-end mt-1">
