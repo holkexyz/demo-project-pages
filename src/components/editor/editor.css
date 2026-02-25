@@ -1,7 +1,23 @@
 /* TipTap / ProseMirror editor styles — certified design system */
 
+/* Resizable editor wrapper */
+.project-editor__resizable {
+  resize: vertical;
+  overflow-y: auto;
+  position: relative;
+}
+
+/* Make the TipTap content wrapper fill the resizable container */
+.project-editor__resizable .project-editor__content {
+  height: 100%;
+}
+
+.project-editor__resizable .project-editor__content .ProseMirror {
+  min-height: 100%;
+  height: auto;
+}
+
 .project-editor__content .ProseMirror {
-  min-height: 200px;
   padding: 1rem;
   outline: none;
   font-family: Inter, system-ui, -apple-system, sans-serif;

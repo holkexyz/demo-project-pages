@@ -185,7 +185,12 @@ export function ProjectEditor({
           Uploading image...
         </div>
       )}
-      <EditorContent editor={editor} className="project-editor__content" />
+      <div
+        className="project-editor__resizable"
+        style={{ height: 400, minHeight: 200, maxHeight: "80vh" }}
+      >
+        <EditorContent editor={editor} className="project-editor__content" />
+      </div>
     </div>
   );
 }
