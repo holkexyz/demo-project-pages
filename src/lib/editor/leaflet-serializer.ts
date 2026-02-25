@@ -13,6 +13,34 @@ const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
 /**
+ * Extract the YouTube video ID from any supported YouTube URL format:
+ * - https://www.youtube.com/watch?v=VIDEO_ID
+ * - https://youtu.be/VIDEO_ID
+ * - https://www.youtube.com/embed/VIDEO_ID
+ * - https://www.youtube-nocookie.com/embed/VIDEO_ID
+ * Returns null if the ID cannot be extracted.
+ */
+function extractYouTubeVideoId(url: string): string | null {
+  try {
+    const u = new URL(url);
+    // youtube.com/watch?v=ID
+    if (u.hostname.includes("youtube.com") && u.searchParams.has("v")) {
+      return u.searchParams.get("v");
+    }
+    // youtu.be/ID
+    if (u.hostname === "youtu.be") {
+      return u.pathname.slice(1).split("/")[0] || null;
+    }
+    // youtube.com/embed/ID or youtube-nocookie.com/embed/ID
+    const embedMatch = u.pathname.match(/\/embed\/([^/?]+)/);
+    if (embedMatch) return embedMatch[1];
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Infer a MIME type from a URL's file extension.
  * Returns a reasonable default if the extension is not recognized.
  */
@@ -312,9 +340,14 @@ export function tiptapToLeaflet(doc: JSONContent): LeafletLinearDocument {
 
       case "youtube": {
         const src = (node.attrs?.src as string) ?? "";
+        // Normalize to canonical YouTube watch URL for stable storage
+        const videoId = extractYouTubeVideoId(src);
+        const canonicalUrl = videoId
+          ? `https://www.youtube.com/watch?v=${videoId}`
+          : src; // fallback to original if we can't extract ID
         block = {
           $type: "pub.leaflet.blocks.iframe",
-          url: src,
+          url: canonicalUrl,
         };
         break;
       }
