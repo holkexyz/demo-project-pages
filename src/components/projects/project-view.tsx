@@ -19,14 +19,6 @@ export interface ProjectViewProps {
   onShare?: () => void;
   onDelete?: () => void;
   deleteError?: string | null;
-  /** Optional display name or handle to show instead of raw DID */
-  displayName?: string;
-}
-
-/** Truncate a DID to a readable short form, e.g. did:plc:abc...xyz */
-function truncateDid(did: string): string {
-  if (did.length <= 20) return did;
-  return `${did.slice(0, 12)}...${did.slice(-4)}`;
 }
 
 const ProjectView: React.FC<ProjectViewProps> = ({
@@ -38,7 +30,6 @@ const ProjectView: React.FC<ProjectViewProps> = ({
   onShare,
   onDelete,
   deleteError,
-  displayName,
 }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -83,9 +74,6 @@ const ProjectView: React.FC<ProjectViewProps> = ({
     }
   };
 
-  // Label shown in meta row: prefer display name / handle, fall back to truncated DID
-  const authorLabel = displayName || truncateDid(did);
-
   const handleDeleteCancel = () => {
     setShowDeleteConfirm(false);
   };
@@ -123,19 +111,13 @@ const ProjectView: React.FC<ProjectViewProps> = ({
       </h1>
 
       {/* Meta row */}
-      <div className="flex items-center gap-4 mb-4">
-        {createdDate && (
+      {createdDate && (
+        <div className="flex items-center gap-4 mb-4">
           <span className="text-caption text-gray-400 uppercase tracking-wider">
             {createdDate}
           </span>
-        )}
-        <span
-          className="text-caption text-gray-400 font-mono truncate max-w-xs"
-          title={did}
-        >
-          {authorLabel}
-        </span>
-      </div>
+        </div>
+      )}
 
       {/* Short description */}
       {project.shortDescription && (
