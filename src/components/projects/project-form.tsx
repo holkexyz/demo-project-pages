@@ -111,8 +111,7 @@ export function ProjectForm({
     <div className="flex flex-col min-h-screen">
       {/* Banner upload area */}
       <div
-        className="relative w-full cursor-pointer group"
-        style={{ aspectRatio: "3 / 1" }}
+        className="relative w-full cursor-pointer group max-w-3xl mx-auto"
         onClick={handleBannerClick}
         role="button"
         tabIndex={0}
@@ -122,12 +121,12 @@ export function ProjectForm({
         }}
       >
         {bannerPreviewUrl ? (
-          <>
+          <div className="w-full rounded-lg overflow-hidden" style={{ aspectRatio: "3 / 1" }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={bannerPreviewUrl}
               alt="Project banner"
-              className="w-full h-full object-cover rounded-lg"
+              className="w-full h-full object-cover"
             />
             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-150 rounded-lg flex items-center justify-center">
               <div className="flex items-center gap-2 text-white font-mono text-sm uppercase tracking-wider">
@@ -135,10 +134,13 @@ export function ProjectForm({
                 Change banner
               </div>
             </div>
-          </>
+          </div>
         ) : (
-          <div className="w-full h-full border-2 border-dashed border-[var(--color-light-gray)] rounded-lg flex flex-col items-center justify-center gap-3 hover:border-[var(--color-accent)] transition-colors duration-150 bg-[var(--color-off-white)]">
-            <ImageIcon className="w-8 h-8 text-[var(--color-mid-gray)]" />
+          <div
+            className="w-full border-2 border-dashed border-[var(--color-light-gray)] rounded-lg flex flex-col items-center justify-center gap-3 hover:border-[var(--color-accent)] transition-colors duration-150 bg-[var(--color-off-white)]"
+            style={{ aspectRatio: "9 / 1" }}
+          >
+            <ImageIcon className="w-6 h-6 text-[var(--color-mid-gray)]" />
             <span className="font-mono text-sm text-[var(--color-mid-gray)] uppercase tracking-wider">
               Add a banner image
             </span>
