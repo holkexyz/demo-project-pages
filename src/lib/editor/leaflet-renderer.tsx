@@ -10,6 +10,37 @@ import type {
 } from "@/lib/atproto/project-types";
 import { getProjectImageUrl } from "@/lib/atproto/projects";
 
+/**
+ * Convert any YouTube URL to an embeddable nocookie URL.
+ * Handles: youtube.com/watch?v=ID, youtu.be/ID, youtube.com/embed/ID,
+ * youtube-nocookie.com/embed/ID, youtube.com/shorts/ID
+ */
+function toYouTubeEmbedUrl(url: string): string | null {
+  try {
+    const u = new URL(url);
+    let videoId: string | null = null;
+
+    if (u.hostname.includes("youtu.be")) {
+      videoId = u.pathname.slice(1).split("/")[0];
+    } else if (u.hostname.includes("youtube.com") || u.hostname.includes("youtube-nocookie.com")) {
+      if (u.pathname.startsWith("/embed/")) {
+        videoId = u.pathname.split("/embed/")[1]?.split("/")[0];
+      } else if (u.pathname.startsWith("/shorts/")) {
+        videoId = u.pathname.split("/shorts/")[1]?.split("/")[0];
+      } else {
+        videoId = u.searchParams.get("v");
+      }
+    }
+
+    if (!videoId) return null;
+    const start = u.searchParams.get("t") || u.searchParams.get("start");
+    const params = start ? `?start=${start}` : "";
+    return `https://www.youtube-nocookie.com/embed/${videoId}${params}`;
+  } catch {
+    return null;
+  }
+}
+
 export interface LeafletRendererProps {
   document: LeafletLinearDocument;
   pdsUrl: string;
@@ -289,12 +320,19 @@ function renderBlock(
     }
 
     case "pub.leaflet.blocks.image": {
-      const cid = block.image.ref.$link;
-      const src = getProjectImageUrl(pdsUrl, did, cid);
+      const rawCid = block.image.ref.$link;
+      // If the CID is a blob: URL or http URL (not a real CID), use it directly
+      // Real CIDs are base32/base58 strings like "bafkrei..."
+      const isRealCid = rawCid && !rawCid.includes(":") && !rawCid.includes("/");
+      const src = isRealCid
+        ? getProjectImageUrl(pdsUrl, did, rawCid)
+        : rawCid; // fallback: use as-is (e.g. blob: URL, though it won't work cross-session)
       const { aspectRatio } = block;
       const paddingBottom = aspectRatio
         ? `${(aspectRatio.height / aspectRatio.width) * 100}%`
         : undefined;
+
+      if (!src) return null;
 
       return (
         <div key={index} className="my-4">
@@ -375,13 +413,16 @@ function renderBlock(
     }
 
     case "pub.leaflet.blocks.iframe": {
+      const rawUrl = block.url;
+      // Convert YouTube watch/share URLs to embeddable nocookie URLs
+      const embedUrl = toYouTubeEmbedUrl(rawUrl) ?? rawUrl;
+
       return (
-        <div key={index} className="my-4">
+        <div key={index} className="my-4 aspect-video">
           <iframe
-            src={block.url}
-            className="w-full rounded-lg"
-            style={{ height: block.height ? `${block.height}px` : "400px" }}
-            sandbox="allow-scripts allow-same-origin allow-presentation"
+            src={embedUrl}
+            className="w-full h-full rounded-lg"
+            sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"
             allowFullScreen
             title="Embedded content"
           />
