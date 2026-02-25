@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import type { Editor } from "@tiptap/react";
 import type { BlobRef } from "@/lib/atproto/project-types";
 import {
@@ -70,6 +70,7 @@ function Divider() {
 
 export function EditorToolbar({ editor, onImageUpload }: EditorToolbarProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   if (!editor) return null;
 
@@ -103,6 +104,7 @@ export function EditorToolbar({ editor, onImageUpload }: EditorToolbarProps) {
     if (!file) return;
     // Reset input so same file can be re-selected
     e.target.value = "";
+    setUploadError(null);
     try {
       const { url, blobRef } = await onImageUpload(file);
       editor
@@ -115,6 +117,8 @@ export function EditorToolbar({ editor, onImageUpload }: EditorToolbarProps) {
         })
         .run();
     } catch (err) {
+      const message = err instanceof Error ? err.message : "Image upload failed";
+      setUploadError(message);
       console.error("Image upload failed", err);
     }
   };
@@ -231,10 +235,22 @@ export function EditorToolbar({ editor, onImageUpload }: EditorToolbarProps) {
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/jpeg,image/png,image/webp,image/gif"
+        accept="image/jpeg,image/png,image/webp"
         className="hidden"
         onChange={handleImageFileChange}
       />
+      {uploadError && (
+        <div className="w-full px-3 py-1.5 text-xs text-red-600 bg-red-50 border-t border-red-200">
+          {uploadError}
+          <button
+            type="button"
+            onClick={() => setUploadError(null)}
+            className="ml-2 underline hover:no-underline"
+          >
+            dismiss
+          </button>
+        </div>
+      )}
     </div>
   );
 }

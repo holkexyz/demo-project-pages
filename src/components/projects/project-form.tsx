@@ -24,6 +24,7 @@ export interface ProjectFormProps {
   isSaving: boolean;
   mode: "create" | "edit";
   onImageUpload: (file: File) => Promise<{ blobRef: BlobRef; url: string }>;
+  saveError?: string | null;
 }
 
 const EMPTY_DOCUMENT: LeafletLinearDocument = { blocks: [] };
@@ -34,6 +35,7 @@ export function ProjectForm({
   isSaving,
   mode,
   onImageUpload,
+  saveError,
 }: ProjectFormProps) {
   const router = useRouter();
 
@@ -69,25 +71,33 @@ export function ProjectForm({
     []
   );
 
+  const [formError, setFormError] = useState<string | null>(null);
+
   const handleSave = useCallback(async () => {
     if (!title.trim()) {
       setTitleError("Project title is required");
       return;
     }
     setTitleError(null);
+    setFormError(null);
 
-    let bannerBlobRef: BlobRef | undefined;
-    if (bannerFile) {
-      const { blobRef } = await onImageUpload(bannerFile);
-      bannerBlobRef = blobRef;
+    try {
+      let bannerBlobRef: BlobRef | undefined;
+      if (bannerFile) {
+        const { blobRef } = await onImageUpload(bannerFile);
+        bannerBlobRef = blobRef;
+      }
+
+      await onSave({
+        title: title.trim(),
+        shortDescription: shortDescription.trim(),
+        description,
+        banner: bannerBlobRef,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to save project. Please try again.";
+      setFormError(message);
     }
-
-    await onSave({
-      title: title.trim(),
-      shortDescription: shortDescription.trim(),
-      description,
-      banner: bannerBlobRef,
-    });
   }, [title, shortDescription, description, bannerFile, onSave, onImageUpload]);
 
   const handleCancel = useCallback(() => {
@@ -144,6 +154,15 @@ export function ProjectForm({
           tabIndex={-1}
         />
       </div>
+
+      {/* Error display */}
+      {(saveError || formError) && (
+        <div className="max-w-3xl mx-auto w-full px-4 pt-4">
+          <p className="text-body-sm text-red-600 bg-red-50 border border-red-200 rounded px-4 py-3" role="alert">
+            {saveError || formError}
+          </p>
+        </div>
+      )}
 
       {/* Form content */}
       <div className="flex-1 max-w-3xl mx-auto w-full px-4 py-8 flex flex-col gap-6">

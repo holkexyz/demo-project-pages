@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useState } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import ImageExtension from "@tiptap/extension-image";
@@ -27,28 +27,25 @@ export function ProjectEditor({
   placeholder = "Start writing your project description...",
   editable = true,
 }: ProjectEditorProps) {
-  const handleImageUploadAndInsert = useCallback(
-    async (file: File, editor: ReturnType<typeof useEditor>) => {
-      if (!editor) return;
+  const [imageError, setImageError] = useState<string | null>(null);
+
+  // Use a ref-stable callback for image upload that doesn't depend on editor
+  const onImageUploadRef = useCallback(
+    async (file: File) => {
+      setImageError(null);
       try {
-        const { url, blobRef } = await onImageUpload(file);
-        editor
-          .chain()
-          .focus()
-          .setImage({
-            src: url,
-            // @ts-expect-error — custom attr for serialization
-            cid: blobRef.ref.$link,
-          })
-          .run();
+        return await onImageUpload(file);
       } catch (err) {
-        console.error("Image upload failed", err);
+        const message = err instanceof Error ? err.message : "Image upload failed";
+        setImageError(message);
+        throw err;
       }
     },
     [onImageUpload]
   );
 
   const editor = useEditor({
+    immediatelyRender: false,
     extensions: [
       StarterKit.configure({
         heading: { levels: [1, 2, 3] },
@@ -92,13 +89,24 @@ export function ProjectEditor({
           const file = event.dataTransfer.files[0];
           if (file.type.startsWith("image/")) {
             event.preventDefault();
-            handleImageUploadAndInsert(file, editor);
+            // Use the view directly — no stale closure issue
+            onImageUploadRef(file).then(({ url, blobRef }) => {
+              const { schema } = view.state;
+              const node = schema.nodes.image.create({
+                src: url,
+                cid: blobRef.ref.$link,
+              });
+              const transaction = view.state.tr.replaceSelectionWith(node);
+              view.dispatch(transaction);
+            }).catch(() => {
+              // Error already handled in onImageUploadRef
+            });
             return true;
           }
         }
         return false;
       },
-      handlePaste: (_view, event) => {
+      handlePaste: (view, event) => {
         const items = event.clipboardData?.items;
         if (!items) return false;
         for (const item of Array.from(items)) {
@@ -106,7 +114,18 @@ export function ProjectEditor({
             const file = item.getAsFile();
             if (file) {
               event.preventDefault();
-              handleImageUploadAndInsert(file, editor);
+              // Use the view directly — no stale closure issue
+              onImageUploadRef(file).then(({ url, blobRef }) => {
+                const { schema } = view.state;
+                const node = schema.nodes.image.create({
+                  src: url,
+                  cid: blobRef.ref.$link,
+                });
+                const transaction = view.state.tr.replaceSelectionWith(node);
+                view.dispatch(transaction);
+              }).catch(() => {
+                // Error already handled in onImageUploadRef
+              });
               return true;
             }
           }
@@ -139,6 +158,18 @@ export function ProjectEditor({
     <div className="project-editor border border-[var(--color-light-gray)] rounded-lg overflow-hidden">
       {editable && (
         <EditorToolbar editor={editor} onImageUpload={onImageUpload} />
+      )}
+      {imageError && (
+        <div className="px-3 py-2 text-xs text-red-600 bg-red-50 border-b border-red-200">
+          {imageError}
+          <button
+            type="button"
+            onClick={() => setImageError(null)}
+            className="ml-2 underline hover:no-underline"
+          >
+            dismiss
+          </button>
+        </div>
       )}
       <EditorContent editor={editor} className="project-editor__content" />
     </div>

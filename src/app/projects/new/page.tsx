@@ -34,11 +34,10 @@ function CreateProjectContent() {
     description: LeafletLinearDocument;
     banner?: BlobRef;
   }) => {
-    if (!agent || !did) throw new Error("Not authenticated");
-
     setIsSaving(true);
     setSaveError(null);
     try {
+      if (!agent || !did) throw new Error("Not authenticated");
       const bannerField = data.banner
         ? { $type: "org.hypercerts.defs#largeImage" as const, image: data.banner }
         : undefined;
@@ -65,18 +64,12 @@ function CreateProjectContent() {
 
   return (
     <>
-      {saveError && (
-        <div className="max-w-3xl mx-auto px-4 pt-4">
-          <p className="text-body-sm text-red-600 bg-red-50 border border-red-200 rounded px-4 py-3" role="alert">
-            {saveError}
-          </p>
-        </div>
-      )}
       <ProjectForm
         mode="create"
         onSave={handleSave}
         isSaving={isSaving}
         onImageUpload={handleImageUpload}
+        saveError={saveError}
       />
     </>
   );
